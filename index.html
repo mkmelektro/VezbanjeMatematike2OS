@@ -10,7 +10,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="shortcut icon" href="icon-192.png">
 
 <style>
 :root{--ink:#26344f;--muted:#69748a;--purple:#675cff;--mint:#21bfa2;--coral:#ff8068;--good:#14885a;--bad:#c94343;--line:#26344f;--card:#fff;--shadow:0 12px 36px rgba(50,65,95,.13)}
@@ -61,7 +64,7 @@ body.app-fullscreen .wrap{margin-top:12px}
 </style>
 </head>
 <body>
-<div class="topbar"><div class="brand">🚀 Математичка авантура</div><div class="top-actions"><div class="badge">⭐ <span id="totalStars">0</span></div><div class="badge marathon-badge" title="Maraton: svaki tačan odgovor je jedan poen">🏃 <span id="marathonTotal">0</span> · до 🍫 <span id="marathonToNext">30</span></div><button id="helpBtn" class="iconbtn">🎬 Како се рачуна?</button><button id="musicBtn" class="iconbtn">🎵 Музика</button><button id="fullscreenBtn" class="iconbtn">⛶ Цео екран</button><button id="homeBtn" class="iconbtn hidden">🏠 Теме</button></div></div><button id="exitFullscreenBtn" class="fullscreen-exit hidden">↙ Изађи из целог екрана</button><div id="chocolateTray" class="chocolate-tray hidden" aria-label="Освојене чоколадице"></div><div id="rewardToast" class="reward-toast">🎺 ФАНФАРЕ! 🍫<br><span style="font-size:.62em">Освојена је чоколадица!</span></div>
+<div class="topbar"><div class="brand">🚀 Математичка авантура</div><div class="top-actions"><div class="badge">⭐ <span id="totalStars">0</span></div><div class="badge marathon-badge" title="Maraton: svaki tačan odgovor je jedan poen">🏃 <span id="marathonTotal">0</span> · до 🍫 <span id="marathonToNext">30</span></div><button id="helpBtn" class="iconbtn">🎬 Како се рачуна?</button><button id="musicBtn" class="iconbtn">🎵 Музика</button><button id="installBtn" class="iconbtn">📲 Инсталирај</button><button id="fullscreenBtn" class="iconbtn">⛶ Цео екран</button><button id="homeBtn" class="iconbtn hidden">🏠 Теме</button></div></div><button id="exitFullscreenBtn" class="fullscreen-exit hidden">↙ Изађи из целог екрана</button><div id="chocolateTray" class="chocolate-tray hidden" aria-label="Освојене чоколадице"></div><div id="rewardToast" class="reward-toast">🎺 ФАНФАРЕ! 🍫<br><span style="font-size:.62em">Освојена је чоколадица!</span></div>
 <div class="wrap">
 <section id="startView" class="panel hero"><div class="mascots">🦊 🐼 🐸</div><h1>Хајде да рачунамо!</h1><p>Пиши резултат оловком или прстом, као у свесци. Можеш и тастатуром.</p><div class="actions"><button id="startBtn" class="primary">Почни игру</button><button id="startHelpBtn" class="secondary">🎬 Прво погледај како се рачуна</button></div><div class="small" style="margin-top:14px">Све ради офлајн. Рукопис и напредак остају само на овом уређају.</div></section>
 <section id="themesView" class="panel hidden"><div class="section-title"><div><h2 style="margin:0">Изабери тему</h2><div class="small">Свака тема има четири нивоа. Четврти је тежи изазов.</div></div><button id="trainBtn" class="secondary">✍️ Научи мој рукопис</button></div><div id="themeGrid" class="theme-grid"></div></section>
@@ -164,10 +167,65 @@ $('startBtn').onclick=()=>{renderThemes();show('themesView');maybeStartMusic()};
 setupScratch();setupTrainCanvas();renderTotal();renderMarathon();updateFullscreenUI();
 </script>
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js').catch(err => console.warn('SW:', err));
-  });
+let deferredInstallPrompt = null;
+
+async function protectLocalData() {
+  try {
+    if (navigator.storage && navigator.storage.persist) {
+      const already = navigator.storage.persisted ? await navigator.storage.persisted() : false;
+      if (!already) await navigator.storage.persist();
+    }
+  } catch (e) { console.warn('Persistent storage:', e); }
 }
+
+function isStandalonePWA() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function updateInstallButton() {
+  const b = document.getElementById('installBtn');
+  if (!b) return;
+  if (isStandalonePWA()) {
+    b.classList.add('hidden');
+  } else {
+    b.classList.remove('hidden');
+  }
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  updateInstallButton();
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  updateInstallButton();
+});
+
+window.addEventListener('load', async () => {
+  if ('serviceWorker' in navigator) {
+    try {
+      await navigator.serviceWorker.register('./service-worker.js', { scope: './' });
+      await navigator.serviceWorker.ready;
+    } catch (err) { console.warn('SW:', err); }
+  }
+  updateInstallButton();
+});
+
+document.addEventListener('pointerdown', protectLocalData, { once: true, passive: true });
+
+document.getElementById('installBtn')?.addEventListener('click', async () => {
+  await protectLocalData();
+  if (isStandalonePWA()) return;
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    try { await deferredInstallPrompt.userChoice; } catch (_) {}
+    deferredInstallPrompt = null;
+    updateInstallButton();
+    return;
+  }
+  alert('Chrome još nije ponudio PWA instalaciju. Osveži stranicu jednom, sačekaj nekoliko sekundi i ponovo pritisni „Instaliraj“. Ako si link otvorio iz druge aplikacije, izaberi „Open in Chrome“ pa pokušaj ponovo.');
+});
 </script>
 </body></html>
