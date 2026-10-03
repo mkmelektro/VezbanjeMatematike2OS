@@ -1,23 +1,23 @@
-const CACHE = 'matematicka-avantura-v3-5-pwa-4';
+const BASE = '/VezbanjeMatematike2OS/';
+const CACHE = 'matematicka-avantura-v3-5-pwa-5';
 const ASSETS = [
-  './',
-  './index.html',
-  './manifest.webmanifest',
-  './icon-192.png',
-  './icon-512.png',
-  './icon-maskable-512.png'
+  BASE,
+  BASE + 'index.html',
+  BASE + 'manifest.json',
+  BASE + 'icon-192.png',
+  BASE + 'icon-512.png',
+  BASE + 'icon-maskable-512.png'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    await Promise.allSettled(
-      ASSETS.map(async url => {
+    for (const url of ASSETS) {
+      try {
         const response = await fetch(url, { cache: 'reload' });
-        if (!response.ok) throw new Error(url + ': ' + response.status);
-        await cache.put(url, response);
-      })
-    );
+        if (response.ok) await cache.put(url, response);
+      } catch (_) {}
+    }
     await self.skipWaiting();
   })());
 });
@@ -39,11 +39,11 @@ self.addEventListener('fetch', event => {
         const response = await fetch(event.request);
         if (response && response.ok) {
           const cache = await caches.open(CACHE);
-          cache.put('./index.html', response.clone());
+          cache.put(BASE + 'index.html', response.clone());
         }
         return response;
       } catch (_) {
-        return (await caches.match('./index.html')) || (await caches.match('./'));
+        return (await caches.match(BASE + 'index.html')) || (await caches.match(BASE));
       }
     })());
     return;
