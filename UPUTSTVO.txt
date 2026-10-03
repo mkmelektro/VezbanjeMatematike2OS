@@ -1,0 +1,22 @@
+МАТЕМАТИЧКА АВАНТУРА — PWA v3.5
+
+Fajlovi koji moraju zajedno na GitHub Pages:
+- index.html
+- manifest.webmanifest
+- service-worker.js
+- icon-192.png
+- icon-512.png
+- .nojekyll
+
+GitHub Pages:
+1. Napravite PUBLIC repository, npr. matematicka-avantura.
+2. Uploadujte SVE fajlove iz ovog foldera u root repozitorijuma.
+3. Settings > Pages > Build and deployment > Source: Deploy from a branch.
+4. Branch: main, folder: /(root), pa Save.
+5. GitHub će prikazati adresu sajta.
+
+Android Chrome:
+1. Otvorite tu HTTPS adresu.
+2. Meni sa tri tacke > Install app (ili Install and create shortcut).
+3. Install.
+4. Nakon prve instalacije igra radi offline.
