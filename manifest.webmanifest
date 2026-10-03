@@ -1,0 +1,16 @@
+{
+  "name": "Математичка авантура — 2. разред",
+  "short_name": "Математика",
+  "description": "Офлајн математичка игра за други разред са препознавањем рукописа и маратонима.",
+  "lang": "sr-Cyrl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fff8ec",
+  "theme_color": "#675cff",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}
