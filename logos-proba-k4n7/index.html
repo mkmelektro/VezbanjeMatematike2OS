@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="sr-Cyrl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+<meta name="theme-color" content="#6657e8">
+<title>Математика 2 — пробни распоред лекција</title>
+<style>
+:root{--ink:#26344f;--muted:#6c7588;--purple:#6657e8;--mint:#20b99b;--yellow:#f4b63f;--coral:#ff8068;--bg:#f5f8ff;--card:#fff;--line:#dfe5ef;--good:#14885a;--bad:#c94343}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;color:var(--ink);background:linear-gradient(180deg,#fffbed,#f5f8ff)}
+button,input{font:inherit}.hidden{display:none!important}
+.top{position:sticky;top:0;z-index:20;display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px 15px;background:rgba(255,255,255,.94);border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+.brand{font-weight:950;font-size:clamp(18px,3vw,26px)}.tag{font-size:12px;background:#fff2bf;padding:7px 10px;border-radius:99px;font-weight:900}
+.wrap{width:min(980px,95vw);margin:20px auto 50px}.card{background:#fff;border:1px solid #e8ecf3;border-radius:25px;padding:clamp(16px,3vw,28px);box-shadow:0 12px 34px rgba(40,55,90,.10)}
+.hero{text-align:center;padding:30px}.hero h1{font-size:clamp(34px,7vw,58px);margin:6px}.hero p{color:var(--muted);font-size:17px;line-height:1.5}.mascots{font-size:50px}
+.btn{border:0;border-radius:16px;padding:12px 17px;font-weight:950;cursor:pointer}.primary{background:linear-gradient(135deg,var(--purple),#8a78ff);color:#fff}.secondary{background:#fff;border:2px solid var(--line);color:var(--ink)}
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}.note{background:#f7f4ff;border-radius:16px;padding:12px 14px;font-size:13px;color:#615d77;line-height:1.45}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:18px}.unit{border:2px solid transparent;border-radius:22px;padding:17px;text-align:left;background:linear-gradient(145deg,#fff,#f8f9ff);box-shadow:0 7px 18px rgba(40,55,90,.08);cursor:pointer}.unit:hover{border-color:#cbc5ff}.unit .emo{font-size:34px}.unit h3{margin:7px 0 4px;font-size:20px}.unit p{color:var(--muted);margin:0;line-height:1.35}.unit .count{margin-top:10px;font-weight:900;color:var(--purple)}
+.head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.head h2{margin:0}.small{font-size:13px;color:var(--muted)}
+.lessons{display:grid;gap:10px;margin-top:16px}.lesson{display:flex;align-items:center;gap:12px;border:2px solid #e8ecf3;border-radius:18px;padding:13px;background:#fff;cursor:pointer;text-align:left}.lesson:hover{border-color:#c8c2ff}.num{width:38px;height:38px;border-radius:12px;background:#f0edff;display:grid;place-items:center;font-weight:950;color:var(--purple);flex:0 0 auto}.lesson-main{flex:1}.lesson-title{font-weight:950}.lesson-sub{font-size:12px;color:var(--muted);margin-top:3px}.stars{color:#f0b000;font-size:18px;white-space:nowrap}
+.problemTop{display:flex;justify-content:space-between;gap:10px;font-weight:900;color:var(--muted)}.progress{height:12px;border-radius:99px;background:#edf1f7;overflow:hidden;margin:12px 0 18px}.progress>div{height:100%;width:0;background:linear-gradient(90deg,var(--mint),#78d9c8);transition:.2s}
+.problem{font-weight:950;font-size:clamp(34px,9vw,70px);text-align:center;margin:18px 0}.context{text-align:center;color:var(--muted);font-size:15px;min-height:24px}
+.vertical{width:min(360px,100%);margin:12px auto 5px;display:grid;grid-template-columns:55px 1fr 1fr;grid-template-rows:30px 75px 75px 5px 125px;align-items:center;justify-items:center}.lab{font-weight:950}.op{font-size:48px;font-weight:950;grid-row:3;grid-column:1}.aT{grid-column:2;grid-row:2}.aO{grid-column:3;grid-row:2}.bT{grid-column:2;grid-row:3}.bO{grid-column:3;grid-row:3}.n{font-size:64px;font-weight:950}.line{grid-column:1/4;grid-row:4;height:4px;background:var(--ink);width:100%;border-radius:3px}.answerBox{grid-row:5;width:110px;height:108px;border:4px dashed #aab4c6;border-radius:20px;background:#fbfcff;display:grid;place-items:center;font-size:58px;font-weight:950}.ansT{grid-column:2}.ansO{grid-column:3}.answerBox.active{border-color:var(--purple);background:#f8f6ff}
+.keypad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:min(520px,100%);margin:15px auto}.key{border:0;border-radius:14px;padding:13px 5px;font-size:24px;font-weight:950;background:#eef2f8;cursor:pointer}.key:active{transform:scale(.96)}
+.feedback{text-align:center;min-height:38px;font-size:19px;font-weight:950;margin-top:8px}.good{color:var(--good)}.bad{color:var(--bad)}
+.scratchWrap{margin-top:20px;border-top:1px solid var(--line);padding-top:15px}.scratch{width:100%;height:220px;border:2px solid #e3e8f0;border-radius:18px;background:linear-gradient(#edf1f7 1px,transparent 1px) 0 0/100% 28px,linear-gradient(90deg,#edf1f7 1px,transparent 1px) 0 0/28px 100%,#fff;touch-action:none}
+.result{text-align:center}.big{font-size:75px}.pillRow{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}.pill{background:#f2f5fb;padding:10px 14px;border-radius:14px;font-weight:900}
+@media(max-width:520px){.wrap{width:97vw}.card{padding:14px}.tag{display:none}.vertical{grid-template-columns:42px 1fr 1fr;grid-template-rows:25px 64px 64px 4px 104px}.n{font-size:52px}.answerBox{width:92px;height:90px;font-size:48px}.keypad{grid-template-columns:repeat(5,1fr)}}
+</style>
+</head>
+<body>
+<div class="top"><div class="brand">📚 Математика 2 — проба</div><div class="tag">само преко директног линка</div></div>
+<div class="wrap">
+<section id="home" class="card hero">
+  <div class="mascots">🦊 🐼 📐</div>
+  <h1>Вежбамо по лекцијама</h1>
+  <p>Пробни распоред градива за 2. разред: изабери целину, затим лекцију, па реши 10 оригиналних задатака.</p>
+  <div class="actions"><button class="btn primary" id="start">Изабери целину</button></div>
+  <div class="note" style="margin-top:18px">Ово није званично дигитално издање нити копија задатака из уџбеника. Лекције и задаци су направљени као пробни модел који прати редослед и исходе градива.</div>
+</section>
+
+<section id="units" class="card hidden">
+  <div class="head"><div><h2>Наставне целине</h2><div class="small">5 целина · 32 пробне лекције</div></div><button class="btn secondary" data-home>🏠 Почетак</button></div>
+  <div id="unitGrid" class="grid"></div>
+</section>
+
+<section id="lessonsView" class="card hidden">
+  <div class="head"><div><h2 id="unitTitle"></h2><div id="unitDesc" class="small"></div></div><button class="btn secondary" id="backUnits">← Целине</button></div>
+  <div id="lessons" class="lessons"></div>
+</section>
+
+<section id="game" class="card hidden">
+  <div class="head"><div><h2 id="lessonName"></h2><div id="lessonHint" class="small"></div></div><button class="btn secondary" id="backLessons">← Лекције</button></div>
+  <div class="problemTop"><span id="qNo">Задатак 1/10</span><span id="score">Тачно: 0</span></div>
+  <div class="progress"><div id="bar"></div></div>
+  <div id="context" class="context"></div>
+  <div id="problem" class="problem"></div>
+  <div id="verticalHost"></div>
+  <div id="keypad" class="keypad"></div>
+  <div class="actions"><button class="btn secondary" id="clear">🧽 Обриши</button><button class="btn primary" id="check">Провери ✓</button></div>
+  <div id="feedback" class="feedback"></div>
+  <div class="scratchWrap">
+    <div class="head"><b>✏️ Помоћна табла</b><button class="btn secondary" id="clearScratch">Обриши таблу</button></div>
+    <canvas id="scratch" class="scratch" width="900" height="440"></canvas>
+  </div>
+</section>
+
+<section id="result" class="card result hidden">
+  <div class="big">🌟</div><h2 id="resultTitle">Браво!</h2><p id="resultText"></p>
+  <div class="pillRow"><div class="pill">✅ <span id="finalScore"></span>/10</div><div class="pill">⭐ <span id="finalStars"></span>/3</div></div>
+  <div class="actions"><button class="btn primary" id="again">Понови лекцију</button><button class="btn secondary" id="chooseLesson">Друга лекција</button></div>
+</section>
+</div>
+
+<script>
+const STORE='logosProbaK4N7_progress_v1';
+const units=[
+ {id:'u1',emo:'➕',title:'1. Бројеви, сабирање и одузимање',desc:'Рачунање до 100 и непознати број.',lessons:[
+  ['Бројеви до 100 — понављање','cmp'],['Сабирање десетица','addT'],['Одузимање десетица','subT'],['Двоцифрен + једноцифрен','add1'],['Сабирање са прелазом','addCarry'],['Двоцифрен + двоцифрен','add2'],['Одузимање без позајмљивања','sub2'],['Одузимање са позајмљивањем','subBorrow'],['Непознати број','unknown'],['Мешовито вежбање','mixed']
+ ]},
+ {id:'u2',emo:'📏',title:'2. Линије и мерење',desc:'Дуж, права, изломљена линија и мере дужине.',lessons:[
+  ['Дуж и права','length'],['Мерење у центиметрима','cm'],['Метар и центиметар','mcm'],['Изломљена линија','poly'],['Обим једноставне фигуре','perim'],['Вежбање мерења','measureMix']
+ ]},
+ {id:'u3',emo:'✖️',title:'3. Множење',desc:'Сабирање једнаких сабирака и таблица множења.',lessons:[
+  ['Шта је множење?','mulIntro'],['Множимо са 2','mul2'],['Множимо са 5','mul5'],['Множимо са 10','mul10'],['Множимо са 3 и 4','mul34'],['Таблица множења — мешовито','mulMix']
+ ]},
+ {id:'u4',emo:'➗',title:'4. Дељење и разломци',desc:'Дељење на једнаке делове и део целине.',lessons:[
+  ['Шта је дељење?','divIntro'],['Дељење са 2 и 5','div25'],['Дељење са 3 и 4','div34'],['Веза множења и дељења','fact'],['Половина, трећина и четвртина','frac']
+ ]},
+ {id:'u5',emo:'🔷',title:'5. Геометрија, време и завршно вежбање',desc:'Фигуре, симетрија, сат и мешовити задаци.',lessons:[
+  ['Квадрат, правоугаоник и троугао','shape'],['Симетрија','sym'],['Гледамо на сат','time'],['Новац и практични задаци','money'],['Завршни изазов','final']
+ ]}
+];
+let unit=null,lessonIndex=0,lesson=null,q=0,correct=0,current=null,typed='',active=1,questions=[];
+
+const $=id=>document.getElementById(id);
+function show(id){['home','units','lessonsView','game','result'].forEach(x=>$(x).classList.toggle('hidden',x!==id));window.scrollTo({top:0,behavior:'smooth'})}
+function loadProgress(){try{return JSON.parse(localStorage.getItem(STORE)||'{}')}catch{return{}}}
+function saveStars(key,stars){let p=loadProgress();p[key]=Math.max(p[key]||0,stars);localStorage.setItem(STORE,JSON.stringify(p))}
+function starsFor(key){return loadProgress()[key]||0}
+function r(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function pick(a){return a[r(0,a.length-1)]}
+function split(n){return n<10?['',String(n)]:[String(Math.floor(n/10)),String(n%10)]}
+function unitKey(){return unit.id+'_'+lessonIndex}
+function renderUnits(){let g=$('unitGrid');g.innerHTML='';units.forEach((u,i)=>{let done=u.lessons.reduce((s,_,j)=>s+(starsFor(u.id+'_'+j)>0?1:0),0);let b=document.createElement('button');b.className='unit';b.innerHTML='<div class="emo">'+u.emo+'</div><h3>'+u.title+'</h3><p>'+u.desc+'</p><div class="count">'+done+'/'+u.lessons.length+' започетих лекција</div>';b.onclick=()=>openUnit(i);g.appendChild(b)})}
+function openUnit(i){unit=units[i];$('unitTitle').textContent=unit.title;$('unitDesc').textContent=unit.desc;let h=$('lessons');h.innerHTML='';unit.lessons.forEach((l,j)=>{let s=starsFor(unit.id+'_'+j);let b=document.createElement('button');b.className='lesson';b.innerHTML='<div class="num">'+(j+1)+'</div><div class="lesson-main"><div class="lesson-title">'+l[0]+'</div><div class="lesson-sub">10 задатака · оригинални пробни задаци</div></div><div class="stars">'+'★'.repeat(s)+'☆'.repeat(3-s)+'</div>';b.onclick=()=>startLesson(j);h.appendChild(b)});show('lessonsView')}
+function gen(type){
+ let a,b,ans,text,ctx='',vertical=false,op='';
+ switch(type){
+  case'cmp':a=r(10,99);b=r(10,99);ans=a>b?1:a<b?2:3;text='Који је број већи?';ctx=a+' или '+b+'?  Унеси 1 ако је први, 2 ако је други, 3 ако су једнаки.';break;
+  case'addT':a=r(1,8)*10;b=r(1,9-Math.floor(a/10))*10;ans=a+b;op='+';vertical=true;break;
+  case'subT':a=r(3,9)*10;b=r(1,Math.floor(a/10)-1)*10;ans=a-b;op='−';vertical=true;break;
+  case'add1':a=r(20,88);b=r(1,Math.min(9,99-a));ans=a+b;op='+';vertical=true;break;
+  case'addCarry':do{a=r(18,79);b=r(5,19)}while(a+b>99||(a%10)+(b%10)<10);ans=a+b;op='+';vertical=true;break;
+  case'add2':do{a=r(12,75);b=r(11,99-a)}while(a+b>99);ans=a+b;op='+';vertical=true;break;
+  case'sub2':do{a=r(30,99);b=r(10,a-10)}while((a%10)<(b%10));ans=a-b;op='−';vertical=true;break;
+  case'subBorrow':do{a=r(31,99);b=r(12,a-10)}while((a%10)>=(b%10));ans=a-b;op='−';vertical=true;break;
+  case'unknown':a=r(10,60);b=r(5,30);ans=b;text='□ + '+a+' = '+(a+b);ctx='Који број недостаје?';break;
+  case'mixed':return gen(pick(['addCarry','add2','sub2','subBorrow']));
+  case'length':a=r(2,18);b=r(2,18);ans=a+b;text=a+' cm + '+b+' cm = ?';ctx='Сабери дужине.';break;
+  case'cm':a=r(3,45);b=r(1,20);ans=a+b;text=a+' cm + '+b+' cm = ?';ctx='Резултат упиши у центиметрима.';break;
+  case'mcm':a=r(1,3);b=r(10,90);ans=a*100+b;text=a+' m '+b+' cm = ? cm';ctx='1 m = 100 cm';break;
+  case'poly':a=r(2,15);b=r(2,15);let c=r(2,15);ans=a+b+c;text=a+' cm + '+b+' cm + '+c+' cm';ctx='Дужина изломљене линије је збир свих њених делова.';break;
+  case'perim':a=r(2,12);b=r(2,12);ans=2*(a+b);text='Правоугаоник: '+a+' cm и '+b+' cm';ctx='Колики је обим?';break;
+  case'measureMix':return gen(pick(['length','cm','mcm','poly','perim']));
+  case'mulIntro':a=r(2,5);b=r(2,5);ans=a*b;text=a+' × '+b+' = ?';ctx='Множење је сабирање једнаких сабирака.';break;
+  case'mul2':a=2;b=r(1,10);ans=a*b;text=a+' × '+b+' = ?';break;
+  case'mul5':a=5;b=r(1,10);ans=a*b;text=a+' × '+b+' = ?';break;
+  case'mul10':a=10;b=r(1,9);ans=a*b;text=a+' × '+b+' = ?';break;
+  case'mul34':a=pick([3,4]);b=r(1,10);ans=a*b;text=a+' × '+b+' = ?';break;
+  case'mulMix':a=r(2,10);b=r(1,10);ans=a*b;text=a+' × '+b+' = ?';break;
+  case'divIntro':b=r(2,5);ans=r(1,8);a=b*ans;text=a+' ÷ '+b+' = ?';ctx='Подели на једнаке делове.';break;
+  case'div25':b=pick([2,5]);ans=r(1,10);a=b*ans;text=a+' ÷ '+b+' = ?';break;
+  case'div34':b=pick([3,4]);ans=r(1,10);a=b*ans;text=a+' ÷ '+b+' = ?';break;
+  case'fact':b=r(2,9);ans=r(1,9);a=b*ans;text=a+' ÷ '+b+' = ?';ctx='Подсети се таблице множења.';break;
+  case'frac':let d=pick([2,3,4]);let whole=d*r(1,8);ans=whole/d;text='Колико је 1/'+d+' од '+whole+'?';ctx='Подели целину на '+d+' једнака дела.';break;
+  case'shape':a=r(2,12);ans=4*a;text='Квадрат има страницу '+a+' cm.';ctx='Колики је његов обим?';break;
+  case'sym':ans=1;text='Колико оса симетрије има типичан правоугаоник који није квадрат?';ctx='Унеси број.';break;
+  case'time':a=r(1,11);b=pick([1,2,3]);ans=(a+b)%12||12;text='Сада је '+a+':00. Колико ће бити за '+b+' h?';break;
+  case'money':a=r(2,8)*10;b=r(1,a/10-1)*10;ans=a-b;text='Имаш '+a+' дин, потрошиш '+b+' дин.';ctx='Колико динара остаје?';break;
+  case'final':return gen(pick(['addCarry','subBorrow','mulMix','divIntro','frac','time','money']));
+ }
+ if(!text)text=a+' '+op+' '+b+' = ?';
+ return{a,b,ans,text,ctx,vertical,op};
+}
+function startLesson(j){lessonIndex=j;lesson=unit.lessons[j];q=0;correct=0;questions=Array.from({length:10},()=>gen(lesson[1]));$('lessonName').textContent=lesson[0];$('lessonHint').textContent=unit.title;show('game');next()}
+function next(){if(q>=10)return finish();current=questions[q];typed='';active=1;$('qNo').textContent='Задатак '+(q+1)+'/10';$('score').textContent='Тачно: '+correct;$('bar').style.width=(q*10)+'%';$('feedback').textContent='';$('feedback').className='feedback';$('context').textContent=current.ctx||'';$('problem').textContent=current.vertical?'':current.text;renderAnswer()}
+function renderAnswer(){let host=$('verticalHost');host.innerHTML='';if(current.vertical){let [at,ao]=split(current.a),[bt,bo]=split(current.b);host.innerHTML='<div class="vertical"><div class="lab" style="grid-column:2">Д</div><div class="lab" style="grid-column:3">Ј</div><div class="op">'+current.op+'</div><div class="n aT">'+at+'</div><div class="n aO">'+ao+'</div><div class="n bT">'+bt+'</div><div class="n bO">'+bo+'</div><div class="line"></div><div id="ansT" class="answerBox ansT"></div><div id="ansO" class="answerBox ansO active"></div></div>'} else {host.innerHTML='<div style="display:flex;justify-content:center;margin:15px"><div id="ansO" class="answerBox active"></div></div>'}syncBoxes()}
+function syncBoxes(){let t=$('ansT'),o=$('ansO');if(current.vertical){let s=typed.slice(-2);if(t)t.textContent=s.length>1?s[0]:'';if(o)o.textContent=s.length?s[s.length-1]:''}else if(o)o.textContent=typed}
+function key(d){typed=(typed+d).slice(current.vertical?2:3);syncBoxes()}
+function clearAns(){typed='';syncBoxes();$('feedback').textContent=''}
+function check(){if(typed===''){bad('Упиши одговор.');return}let v=Number(typed);if(v===current.ans){correct++;$('feedback').className='feedback good';$('feedback').textContent=pick(['Браво! 🌟','Тачно! 🎉','Одлично! 🚀']);q++;$('bar').style.width=(q*10)+'%';setTimeout(next,650)}else bad('Покушај поново. 🙂')}
+function bad(s){$('feedback').className='feedback bad';$('feedback').textContent=s}
+function finish(){let s=correct>=9?3:correct>=7?2:correct>=5?1:0;saveStars(unitKey(),s);$('finalScore').textContent=correct;$('finalStars').textContent=s;$('resultTitle').textContent=correct>=9?'Фантастично!':correct>=7?'Одличан рад!':correct>=5?'Добро ти иде!':'Пробај још једном!';$('resultText').textContent='Лекција „'+lesson[0]+'“: '+correct+' од 10 тачних одговора.';show('result')}
+function setupKeys(){let k=$('keypad');'1234567890'.split('').forEach(x=>{let b=document.createElement('button');b.className='key';b.textContent=x;b.onclick=()=>key(x);k.appendChild(b)})}
+function setupScratch(){let c=$('scratch'),x=c.getContext('2d'),down=false,last=null;x.lineWidth=6;x.lineCap='round';x.strokeStyle='#33425d';const p=e=>{let r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height}};c.onpointerdown=e=>{e.preventDefault();down=true;last=p(e);c.setPointerCapture?.(e.pointerId)};c.onpointermove=e=>{if(!down)return;e.preventDefault();let q=p(e);x.beginPath();x.moveTo(last.x,last.y);x.lineTo(q.x,q.y);x.stroke();last=q};c.onpointerup=c.onpointercancel=()=>down=false;$('clearScratch').onclick=()=>x.clearRect(0,0,c.width,c.height)}
+$('start').onclick=()=>{renderUnits();show('units')};document.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>show('home'));$('backUnits').onclick=()=>{renderUnits();show('units')};$('backLessons').onclick=()=>openUnit(units.indexOf(unit));$('clear').onclick=clearAns;$('check').onclick=check;$('again').onclick=()=>startLesson(lessonIndex);$('chooseLesson').onclick=()=>openUnit(units.indexOf(unit));document.addEventListener('keydown',e=>{if(!$('game').classList.contains('hidden')){if(/^[0-9]$/.test(e.key))key(e.key);else if(e.key==='Backspace')clearAns();else if(e.key==='Enter')check()}});
+setupKeys();setupScratch();
+</script>
+</body></html>
