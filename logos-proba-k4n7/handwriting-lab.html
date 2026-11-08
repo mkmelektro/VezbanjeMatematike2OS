@@ -206,14 +206,14 @@ import {InferenceEngine,preprocessStrokes,isStrokeMeaningful,loadVocab} from "ht
 ort.env.wasm.numThreads=1;
 ort.env.wasm.wasmPaths="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.2/dist/";
 
-const MODEL_BASE="https://github.com/kimseungdae/ink-on/releases/download/v0.1.0/";
+const MODEL_BASE="https://cdn.jsdelivr.net/gh/kimseungdae/ink-on@v0.1.0/public/models/comer/";
 let engine=null,vocab=null,loading=null;
 
 async function ensureModel(){
  if(engine&&vocab)return;
  if(loading)return loading;
  loading=(async()=>{
-   setStatus("Први пут учитавам open-source модел (~7,2 MB)…","loading");
+   setStatus("Први пут учитавам open-source модел (~7,2 MB) преко CDN-а…","loading");
    vocab=await loadVocab(MODEL_BASE+"vocab.json");
    const mem=navigator.deviceMemory||4;
    engine=new InferenceEngine({
