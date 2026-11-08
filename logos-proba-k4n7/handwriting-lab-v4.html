@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="theme-color" content="#6657e8">
-<title>Проба препознавања целог израза — v4 SAFE</title>
+<title>Проба препознавања целог израза — v4.1 SAFE</title>
 <style>
 :root{--ink:#26344f;--muted:#6d7689;--purple:#6657e8;--mint:#1fb99b;--red:#c94343;--line:#dfe5ef}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;color:var(--ink);background:linear-gradient(180deg,#fffbed,#f4f8ff)}
@@ -30,7 +30,7 @@ details{margin-top:14px}details summary{cursor:pointer;font-weight:900}.tech{fon
 <div class="wrap">
 <section class="card">
   <div class="top">
-    <div><div style="font-size:34px">✍️🧠</div><h1>Проба целог руком писаног израза <span style="font-size:.45em;color:#6d7689">v4 SAFE</span></h1></div>
+    <div><div style="font-size:34px">✍️🧠</div><h1>Проба целог руком писаног израза <span style="font-size:.45em;color:#6d7689">v4.1 SAFE</span></h1></div>
     <a class="back" href="./">← Назад на пробни сајт</a>
   </div>
   <div class="note"><b>Open-source / бесплатно:</b> препознавање ради помоћу модела CoMER преко библиотеке <b>ink-on</b>. Речник је уграђен у страницу. ONNX ради у посебном Web Worker-у, па интерфејс не би требало да се замрзне током препознавања. Нема API кључа и рукопис се не шаље нашем серверу.</div>
@@ -59,7 +59,7 @@ details{margin-top:14px}details summary{cursor:pointer;font-weight:900}.tech{fon
     <button id="clear" class="btn secondary">🧽 Обриши</button>
     <button id="recognize" class="btn primary">✨ Препознај и провери</button>
   </div>
-  <div id="status" class="status">v4 SAFE: речник је уграђен у страницу; ONNX модел ће се учитати при првом препознавању.</div>
+  <div id="status" class="status">v4.1 SAFE: речник је уграђен у страницу; ONNX модел ће се учитати при првом препознавању.</div>
 </section>
 
 <section class="card">
@@ -76,7 +76,7 @@ details{margin-top:14px}details summary{cursor:pointer;font-weight:900}.tech{fon
   </div>
   <details>
     <summary>Технички детаљи</summary>
-    <div id="technical" class="tech">v4 SAFE — vocab: уграђен у HTML
+    <div id="technical" class="tech">v4.1 SAFE — vocab: уграђен у HTML
 model commit: 2585994ee11fe2ed98065c555c4aae8ee9096209
 Још нема резултата.</div>
   </details>
@@ -195,7 +195,60 @@ window.__verifyExpression=verifyExpression;
 </script>
 
 <script type="module">
-import {preprocessStrokes,isStrokeMeaningful} from "https://cdn.jsdelivr.net/npm/ink-on@0.1.0/dist-lib/core.js";
+
+const MODEL_H=256,MAX_W=1024,MIN_W=128,W_ALIGN=64,TARGET_H=128,PAD=16;
+function resamplePoints(points,interval=3){
+  if(points.length<2)return points;
+  const out=[points[0]];let remaining=interval;
+  for(let i=1;i<points.length;i++){
+    const a=points[i-1],b=points[i],dx=b.x-a.x,dy=b.y-a.y,dist=Math.hypot(dx,dy);
+    if(dist<=remaining){remaining-=dist;continue}
+    let covered=remaining;
+    while(covered<=dist){const t=covered/dist;out.push({x:a.x+dx*t,y:a.y+dy*t});covered+=interval}
+    remaining=covered-dist;
+  }
+  out.push(points[points.length-1]);return out;
+}
+function bbox(strokes){
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  for(const s of strokes)for(const p of s.points){minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x);maxY=Math.max(maxY,p.y)}
+  return{minX,minY,maxX,maxY};
+}
+function isStrokeMeaningful(strokes){
+  if(!strokes.length)return false;
+  const b=bbox(strokes),w=b.maxX-b.minX,h=b.maxY-b.minY;
+  if(w<8&&h<8)return false;
+  let pts=0,len=0;
+  for(const s of strokes){pts+=s.points.length;for(let i=1;i<s.points.length;i++)len+=Math.hypot(s.points[i].x-s.points[i-1].x,s.points[i].y-s.points[i-1].y)}
+  return pts>=6&&len>=15;
+}
+function preprocessStrokes(strokes){
+  const b=bbox(strokes);
+  const rawW=Math.max(1,Math.ceil(b.maxX-b.minX))+PAD*2;
+  const rawH=Math.max(1,Math.ceil(b.maxY-b.minY))+PAD*2;
+  const raw=document.createElement('canvas');raw.width=rawW;raw.height=rawH;
+  const rx=raw.getContext('2d');rx.fillStyle='#000';rx.fillRect(0,0,rawW,rawH);rx.strokeStyle='#fff';rx.lineCap='round';rx.lineJoin='round';
+  for(const s of strokes){
+    if(!s.points.length)continue;
+    const pts=resamplePoints(s.points);rx.beginPath();rx.lineWidth=Math.max(2,s.lineWidth||5);
+    const first=pts[0];rx.moveTo(first.x-b.minX+PAD,first.y-b.minY+PAD);
+    if(pts.length===1)rx.lineTo(first.x-b.minX+PAD+.1,first.y-b.minY+PAD+.1);
+    else for(let i=1;i<pts.length;i++)rx.lineTo(pts[i].x-b.minX+PAD,pts[i].y-b.minY+PAD);
+    rx.stroke();
+  }
+  const scale=Math.min(TARGET_H/raw.height,MAX_W/raw.width);
+  const dw=Math.max(1,Math.round(raw.width*scale)),dh=Math.max(1,Math.round(raw.height*scale));
+  const canvasW=Math.min(MAX_W,Math.max(MIN_W,Math.ceil((dw+PAD)/W_ALIGN)*W_ALIGN));
+  const c=document.createElement('canvas');c.width=canvasW;c.height=MODEL_H;
+  const cx=c.getContext('2d');cx.fillStyle='#000';cx.fillRect(0,0,canvasW,MODEL_H);cx.drawImage(raw,0,0,dw,dh);
+  const data=cx.getImageData(0,0,canvasW,MODEL_H).data;
+  const tensor=new Float32Array(canvasW*MODEL_H);
+  for(let i=0;i<tensor.length;i++){const o=i*4;tensor[i]=(data[o]*.299+data[o+1]*.587+data[o+2]*.114)/255}
+  const mask=new Uint8Array(canvasW*MODEL_H);
+  for(let y=0;y<MODEL_H;y++)for(let x=0;x<canvasW;x++)mask[y*canvasW+x]=(y<dh&&x<dw)?0:1;
+  return{tensor,height:MODEL_H,width:canvasW,mask,maskHeight:MODEL_H,maskWidth:canvasW};
+}
+
 
 const MODEL_BASE="https://cdn.jsdelivr.net/gh/kimseungdae/ink-on@2585994ee11fe2ed98065c555c4aae8ee9096209/public/models/comer/";
 const vocab={
@@ -441,13 +494,14 @@ let reqId=0;
 const pending=new Map();
 let workerReadyResolve,workerReadyReject;
 let workerReady=new Promise((res,rej)=>{workerReadyResolve=res;workerReadyReject=rej});
-const worker=new Worker("./ink-worker-v4.js?v=1",{type:"module"});
+setStatus("v4.1 SAFE: JavaScript је покренут; подижем worker…","loading");
+const worker=new Worker("./ink-worker-v4.js?v=2",{type:"module"});
 
 worker.onmessage=e=>{
   const m=e.data;
   if(m.type==="init-done"){
     workerReadyResolve();
-    setStatus("v4 SAFE: модел је спреман у позадинском worker-у.","");
+    setStatus("v4.1 SAFE: модел је спреман у позадинском worker-у.","");
     return;
   }
   if(m.type==="init-error"){
@@ -551,7 +605,7 @@ document.getElementById('recognize').onclick=async()=>{
      }
    }
    document.getElementById('technical').textContent=
-     'v4 SAFE · Worker WASM · greedy\n'+
+     'v4.1 SAFE · Worker WASM · greedy\n'+
      'LaTeX: '+JSON.stringify(latex)+'\n'+
      'Режим: '+mode+'\n'+
      'Encoder: '+res.encoderMs+' ms\nDecoder: '+res.decoderMs+' ms\nУкупно: '+res.totalMs+' ms\n'+
