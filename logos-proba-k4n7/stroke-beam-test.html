@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="theme-color" content="#6657e8">
-<title>Stroke Beam Test — v6.2</title>
+<title>Stroke Beam Test — v6.3</title>
 <style>
 :root{--ink:#26344f;--muted:#6d7689;--purple:#6657e8;--green:#14885a;--red:#c94343;--line:#dfe5ef}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;color:var(--ink);background:linear-gradient(180deg,#fffbed,#f4f8ff)}
@@ -26,7 +26,7 @@ details{margin-top:14px}summary{font-weight:900;cursor:pointer}.tech{font-family
 <div class="wrap">
 <section class="card">
  <div class="top"><div><div style="font-size:34px">✍️⚡</div><h1>Брзи рукопис <span style="font-size:.45em;color:#6d7689">v6 Stroke Beam</span></h1></div><a class="back" href="./">← Назад</a></div>
- <div class="note"><b>V6.2:</b> један потез више није један знак. Систем редом проба групе од <b>1, 2 или 3 узастопна stroke-а</b>, јер +, =, ×, ÷ и многе рукописне цифре имају више потеза. Затим beam search бира највероватнију поделу целог израза користећи CNN, геометрију и правила математичког записа.</div>
+ <div class="note"><b>V6.3:</b> recognizer више не гледа само знак по знак. Ако види <b>(</b>, очекује одговарајућу <b>)</b> и валидан математички израз између њих. Унутар заграде фаворизује обрасце као <b>број − број</b>, <b>број + број</b>, <b>број × број</b> или <b>број ÷ број</b>. Исто тако, укрштени stroke-ови добијају снажан приоритет као оператори, уместо да се читају као две одвојене цифре.</div>
 </section>
 <section class="card">
  <div id="wrap" class="canvasWrap"><canvas id="ink" width="1200" height="360"></canvas><div class="hint">Напиши нпр. (2−1)=1 — не мораш спајати потезе</div></div>
@@ -139,10 +139,10 @@ function geometryCandidates(g){
   const hs=k.filter(x=>x==='h').length;
   if(hs===2){
    const a=ss[0].box,b=ss[1].box,ov=Math.max(0,Math.min(a.maxX,b.maxX)-Math.max(a.minX,b.minX))/Math.max(1,Math.min(a.w,b.w));
-   if(ov>.35)out.push({ch:'=',conf:.99,why:'2 stroke-а: две паралелне хоризонтале'});
+   if(ov>.35)out.push({ch:'=',conf:.999,why:'2 stroke-а: две паралелне хоризонтале'});
   }
-  if(k.includes('h')&&k.includes('v'))out.push({ch:'+',conf:.985,why:'2 stroke-а: хоризонтала + вертикала'});
-  if(k.includes('d1')&&k.includes('d2'))out.push({ch:'×',conf:.975,why:'2 stroke-а: укрштене дијагонале'});
+  if(k.includes('h')&&k.includes('v'))out.push({ch:'+',conf:.9995,why:'2 stroke-а: укрштена хоризонтала + вертикала'});
+  if(k.includes('d1')&&k.includes('d2'))out.push({ch:'×',conf:.999,why:'2 stroke-а: укрштене дијагонале'});
  }
  if(ss.length===3){
   const hi=k.findIndex(x=>x==='h');
@@ -199,7 +199,7 @@ function candidateList(from,count){
      for(const d of digits){
        let shapePrior=1;
        if(count===3)shapePrior=.84; else if(count===2)shapePrior=.93;
-       out.push({...d,conf:d.conf*compat*shapePrior,g,count});
+       let dc={...d,conf:d.conf*compat*shapePrior,g,count};dc=oneSevenCorrection(dc,g);out.push(dc);
      }
    }
  }
@@ -208,39 +208,86 @@ function candidateList(from,count){
  return [...bestByChar.values()].filter(c=>c.conf>.035).sort((a,b)=>b.conf-a.conf).slice(0,5);
 }
 function grammarScore(s,final=false){
- let bal=0,eq=0,prev='start';
+ let bal=0,eq=0,prev='start',score=0;
+ let openStack=[];
  for(let i=0;i<s.length;i++){
   const c=s[i],digit=/\d/.test(c),op='+-×÷−'.includes(c);
   if(digit){
     if(prev===')')return-Infinity;
+    if(prev==='digit') score+=.04; // multi-digit numbers are fine
+    if(prev==='('||prev==='op'||prev==='='||prev==='start') score+=.08;
     prev='digit';continue;
   }
   if(c==='('){
     if(prev==='digit'||prev===')'||prev==='=')return-Infinity;
-    bal++;prev='(';continue;
+    bal++;openStack.push(i);score+=.22;prev='(';continue;
   }
   if(c===')'){
     if(bal<=0||prev==='start'||prev==='('||prev==='op'||prev==='=')return-Infinity;
-    bal--;prev=')';continue;
+    bal--;openStack.pop();score+=.30;prev=')';continue;
   }
   if(op){
     const unaryMinus=(c==='−'||c==='-')&&(prev==='start'||prev==='('||prev==='=');
     if(!unaryMinus && prev!=='digit'&&prev!==')')return-Infinity;
+    // Inside parentheses we strongly expect a real operation between operands.
+    if(bal>0 && (prev==='digit'||prev===')'))score+=.34;
+    else score+=.12;
     prev='op';continue;
   }
   if(c==='='){
-    if(eq||prev!=='digit'&&prev!==')'||bal!==0)return-Infinity;
-    eq++;prev='=';continue;
+    if(eq||((prev!=='digit')&&prev!==')')||bal!==0)return-Infinity;
+    eq++;score+=.32;prev='=';continue;
   }
   return-Infinity;
  }
- if(final&&(bal!==0||prev==='op'||prev==='('||prev==='='||prev==='start'))return-Infinity;
- let score=0;
- if(bal===0)score+=.28;
+ if(final){
+   if(bal!==0||prev==='op'||prev==='('||prev==='='||prev==='start')return-Infinity;
+   score+=.35;
+ }
+ if(bal===0)score+=.25;
  if(eq===1)score+=.18;
- if(final)score+=.3;
+
+ // Strong contextual bonus for a completed parenthesized arithmetic form.
+ // Examples: (2-1), (12+3), (4×5), (8÷2)
+ const parenSimple=/\((?:\d+|\([^()]+\))\s*[+−\-×÷]\s*(?:\d+|\([^()]+\))\)/;
+ if(parenSimple.test(s))score+=.85;
+
+ // Penalize suspicious long digit runs created by swallowing brackets/operators.
+ if(/\d{4,}/.test(s))score-=.75;
  return score;
 }
+
+function contextualPartBonus(parts){
+ let bonus=0;
+ for(let i=0;i<parts.length;i++){
+   const p=parts[i];
+   // If a candidate is a 2-stroke operator, strongly prefer keeping it together.
+   if(p.count===2 && ['+','×','='].includes(p.ch)) bonus+=.55;
+   if(p.count===3 && p.ch==='÷') bonus+=.55;
+   if((p.ch==='('||p.ch===')') && p.count===1) bonus+=.28;
+ }
+ return bonus;
+}
+
+function oneSevenCorrection(candidate, g){
+ // Helps the classic 1/7 ambiguity using stroke geometry.
+ if(candidate.ch!=='1' && candidate.ch!=='7') return candidate;
+ const allPts=g.items.flatMap(it=>it.s.points);
+ if(allPts.length<3)return candidate;
+ const minX=Math.min(...allPts.map(p=>p.x)),maxX=Math.max(...allPts.map(p=>p.x));
+ const minY=Math.min(...allPts.map(p=>p.y)),maxY=Math.max(...allPts.map(p=>p.y));
+ const w=Math.max(1,maxX-minX),h=Math.max(1,maxY-minY);
+ const topPts=allPts.filter(p=>p.y<minY+h*.28);
+ const topSpan=topPts.length?Math.max(...topPts.map(p=>p.x))-Math.min(...topPts.map(p=>p.x)):0;
+ if(candidate.ch==='7' && topSpan<w*.28 && h>w*1.8){
+   return {...candidate,ch:'1',conf:Math.min(.995,candidate.conf*1.08),why:candidate.why+' + геометрија 1/7'};
+ }
+ if(candidate.ch==='1' && topSpan>w*.55){
+   return {...candidate,ch:'7',conf:Math.min(.995,candidate.conf*1.05),why:candidate.why+' + геометрија 1/7'};
+ }
+ return candidate;
+}
+
 function beamRecognize(){
  const N=strokes.length,beamWidth=18;
  let beam=[{pos:0,text:'',score:0,parts:[]}];
@@ -257,7 +304,7 @@ function beamRecognize(){
          if(!Number.isFinite(gs))continue;
          const conf=Math.max(.0001,c.conf);
          const groupPenalty=count>1?-.035*(count-1):0;
-         next.push({pos:st.pos+count,text,score:st.score+Math.log(conf)+gs+groupPenalty,parts:[...st.parts,c]});
+         const newParts=[...st.parts,c];const ctxBonus=contextualPartBonus(newParts);next.push({pos:st.pos+count,text,score:st.score+Math.log(conf)+gs+groupPenalty+ctxBonus,parts:newParts});
        }
      }
    }
@@ -269,7 +316,7 @@ function beamRecognize(){
  for(const st of beam){
    if(st.pos!==N)continue;
    const gs=grammarScore(st.text,true);if(!Number.isFinite(gs))continue;
-   let bonus=gs,verified=null;
+   let bonus=gs+contextualPartBonus(st.parts),verified=null;
    try{verified=verify(st.text);bonus+=verified.eq?1.0:.55;if(verified.eq&&verified.ok)bonus+=.22}catch{}
    finals.push({...st,score:st.score+bonus,verified});
  }
@@ -303,7 +350,7 @@ document.getElementById('go').onclick=async()=>{
      else{checkBox.className='box neutral';checked.textContent='Вредност израза: '+v.v;detail.textContent='Додај = и резултат за проверу једнакости.'}
    }catch(e){checkBox.className='box bad';checked.textContent='Не могу да проверим';detail.textContent=e.message}
    const alt=out.alternatives.map((a,i)=>(i+1)+'. '+a.text+'  score='+a.score.toFixed(2)).join('\n');
-   tech.textContent='v6.2 STROKE-BEAM\nУкупно: '+tTotal.toFixed(1)+' ms\nStroke-ова: '+strokes.length+'\nКандидата/експанзија: '+out.expansions+'\nИзабрано: '+expr+'\n\nПодела:\n'+best.parts.map((x,i)=>(i+1)+'. '+x.ch+' ← stroke '+(x.g.from+1)+'..'+x.g.to+'  conf='+Math.round(x.conf*100)+'%  '+x.why).join('\n')+'\n\nНајбоље алтернативе:\n'+alt;
+   tech.textContent='v6.3 CONTEXT-BEAM\nУкупно: '+tTotal.toFixed(1)+' ms\nStroke-ова: '+strokes.length+'\nКандидата/експанзија: '+out.expansions+'\nИзабрано: '+expr+'\n\nПодела:\n'+best.parts.map((x,i)=>(i+1)+'. '+x.ch+' ← stroke '+(x.g.from+1)+'..'+x.g.to+'  conf='+Math.round(x.conf*100)+'%  '+x.why).join('\n')+'\n\nНајбоље алтернативе:\n'+alt;
    setStatus('Готово — '+tTotal.toFixed(0)+' ms · '+strokes.length+' stroke-ова → '+best.parts.length+' знакова.','');
  }catch(e){console.error(e);setStatus('Грешка: '+e.message,'error');tech.textContent=String(e.stack||e)}
  finally{btn.disabled=false}
