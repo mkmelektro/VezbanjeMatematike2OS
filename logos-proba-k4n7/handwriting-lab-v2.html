@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="sr-Cyrl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+<meta name="theme-color" content="#6657e8">
+<title>Проба препознавања целог израза — v2</title>
+<style>
+:root{--ink:#26344f;--muted:#6d7689;--purple:#6657e8;--mint:#1fb99b;--red:#c94343;--line:#dfe5ef}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;color:var(--ink);background:linear-gradient(180deg,#fffbed,#f4f8ff)}
+button,select{font:inherit}.wrap{width:min(1050px,96vw);margin:18px auto 50px}.card{background:#fff;border:1px solid #e7ebf3;border-radius:24px;padding:clamp(14px,2.5vw,25px);box-shadow:0 12px 36px rgba(40,55,90,.1);margin-bottom:15px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.top h1{font-size:clamp(23px,5vw,38px);margin:0}.back{border:2px solid var(--line);background:#fff;border-radius:14px;padding:10px 13px;font-weight:900;text-decoration:none;color:var(--ink)}
+.note{background:#f4f1ff;border-radius:16px;padding:12px 14px;line-height:1.5;color:#5f5a76;font-size:14px;margin-top:12px}.note b{color:#5143bd}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:13px 0}.controls label{font-weight:900}.controls select{padding:10px 12px;border:2px solid var(--line);border-radius:13px;background:#fff}
+.canvasWrap{position:relative;border:3px solid #d9deea;border-radius:20px;overflow:hidden;background:
+linear-gradient(#e8edf5 1px,transparent 1px) 0 0/100% 36px,
+linear-gradient(90deg,#eff2f7 1px,transparent 1px) 0 0/36px 100%,#fff}
+#ink{display:block;width:100%;height:min(34vh,330px);min-height:230px;touch-action:none;cursor:crosshair}
+.hintOverlay{position:absolute;left:16px;top:12px;color:#b0b7c5;font-weight:900;pointer-events:none;font-size:clamp(15px,3vw,21px);transition:.2s}.canvasWrap.hasInk .hintOverlay{opacity:0}
+.actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;margin-top:13px}.btn{border:0;border-radius:15px;padding:12px 16px;font-weight:950;cursor:pointer}.primary{background:linear-gradient(135deg,var(--purple),#8a78ff);color:#fff}.secondary{border:2px solid var(--line);background:#fff}.btn:disabled{opacity:.5;cursor:default}
+.status{margin:12px auto 0;min-height:24px;text-align:center;font-weight:900;color:var(--muted)}.status.loading{color:#6b5dd6}.status.error{color:var(--red)}
+.results{display:grid;grid-template-columns:1fr 1fr;gap:12px}.resultBox{border:2px solid #e6eaf1;border-radius:18px;padding:15px;min-height:125px}.label{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:950}.big{font-size:clamp(24px,5vw,38px);font-weight:950;margin-top:10px;word-break:break-word}.latex{font-family:Georgia,"Times New Roman",serif}.good{border-color:#a9dfcc;background:#f3fff9}.bad{border-color:#f0b7b7;background:#fff6f6}.neutral{background:#fafbfe}
+.examples{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.chip{border:0;background:#eef1f7;border-radius:99px;padding:7px 10px;font-weight:900;color:#5e687d}
+details{margin-top:14px}details summary{cursor:pointer;font-weight:900}.tech{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;white-space:pre-wrap;word-break:break-all;background:#f7f8fb;padding:12px;border-radius:13px;margin-top:8px}
+@media(max-width:700px){.results{grid-template-columns:1fr}.wrap{width:98vw}.card{padding:13px}.btn{flex:1}.back{width:100%;text-align:center}}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.2/dist/ort.min.mjs"
+  }
+}
+</script>
+</head>
+<body>
+<div class="wrap">
+<section class="card">
+  <div class="top">
+    <div><div style="font-size:34px">✍️🧠</div><h1>Проба целог руком писаног израза <span style="font-size:.45em;color:#6d7689">v2</span></h1></div>
+    <a class="back" href="./">← Назад на пробни сајт</a>
+  </div>
+  <div class="note"><b>Open-source / бесплатно:</b> препознавање ради помоћу модела CoMER преко библиотеке <b>ink-on</b>. Речник је уграђен у страницу. Први пут се преузме само око 7,2 MB ONNX модела; после тога browser га кешира. Нема API кључа и рукопис се не шаље нашем серверу.</div>
+  <div class="controls">
+    <label for="mode">Шта пишемо:</label>
+    <select id="mode">
+      <option value="number">Аритметички израз: 0–9, +, −, ×, ÷, =, ( )</option>
+      <option value="expression">Римски бројеви — експериментално</option>
+    </select>
+  </div>
+  <div class="examples">
+    <span class="chip">(8 + 4) ÷ 2 = 6</span>
+    <span class="chip">27 + 8 = 35</span>
+    <span class="chip">7 × (3 + 2) = 35</span>
+    <span class="chip">XIV = 14</span>
+  </div>
+</section>
+
+<section class="card">
+  <div id="canvasWrap" class="canvasWrap">
+    <canvas id="ink" width="1200" height="360"></canvas>
+    <div class="hintOverlay">Напиши цео израз овде...</div>
+  </div>
+  <div class="actions">
+    <button id="undo" class="btn secondary">↶ Последњи потез</button>
+    <button id="clear" class="btn secondary">🧽 Обриши</button>
+    <button id="recognize" class="btn primary">✨ Препознај и провери</button>
+  </div>
+  <div id="status" class="status">v2: речник је уграђен у страницу; ONNX модел ће се учитати при првом препознавању.</div>
+</section>
+
+<section class="card">
+  <div class="results">
+    <div class="resultBox neutral">
+      <div class="label">Модел је прочитао</div>
+      <div id="recognized" class="big latex">—</div>
+    </div>
+    <div id="checkBox" class="resultBox neutral">
+      <div class="label">Математичка провера</div>
+      <div id="checked" class="big">—</div>
+      <div id="detail" style="margin-top:8px;color:var(--muted);font-weight:800"></div>
+    </div>
+  </div>
+  <details>
+    <summary>Технички детаљи</summary>
+    <div id="technical" class="tech">v2 — vocab: уграђен у HTML
+model commit: 2585994ee11fe2ed98065c555c4aae8ee9096209
+Још нема резултата.</div>
+  </details>
+</section>
+</div>
+
+<script>
+const ink=document.getElementById('ink');
+const ctx=ink.getContext('2d');
+const wrap=document.getElementById('canvasWrap');
+let strokes=[],active=null;
+
+ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#273650';ctx.lineWidth=6;
+
+function pos(e){
+  const r=ink.getBoundingClientRect();
+  return {x:(e.clientX-r.left)*ink.width/r.width,y:(e.clientY-r.top)*ink.height/r.height};
+}
+function redraw(){
+  ctx.clearRect(0,0,ink.width,ink.height);
+  ctx.strokeStyle='#273650';ctx.lineWidth=6;ctx.lineCap='round';ctx.lineJoin='round';
+  for(const s of strokes){
+    if(!s.points.length)continue;
+    ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);
+    for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);
+    if(s.points.length===1)ctx.lineTo(s.points[0].x+.1,s.points[0].y+.1);
+    ctx.stroke();
+  }
+  wrap.classList.toggle('hasInk',strokes.length>0);
+}
+ink.addEventListener('pointerdown',e=>{
+  e.preventDefault();ink.setPointerCapture?.(e.pointerId);
+  active={points:[pos(e)],lineWidth:5};strokes.push(active);redraw();
+});
+ink.addEventListener('pointermove',e=>{
+  if(!active)return;e.preventDefault();
+  const p=pos(e);active.points.push(p);
+  const n=active.points.length;
+  if(n>=2){ctx.beginPath();ctx.moveTo(active.points[n-2].x,active.points[n-2].y);ctx.lineTo(p.x,p.y);ctx.stroke();}
+});
+function endStroke(){active=null;wrap.classList.toggle('hasInk',strokes.length>0)}
+ink.addEventListener('pointerup',endStroke);ink.addEventListener('pointercancel',endStroke);
+document.getElementById('clear').onclick=()=>{strokes=[];active=null;redraw();resetResult()};
+document.getElementById('undo').onclick=()=>{strokes.pop();active=null;redraw();resetResult()};
+
+function resetResult(){
+ document.getElementById('recognized').textContent='—';
+ document.getElementById('checked').textContent='—';
+ document.getElementById('detail').textContent='';
+ document.getElementById('technical').textContent='Још нема резултата.';
+ const b=document.getElementById('checkBox');b.className='resultBox neutral';
+}
+function setStatus(t,cls=''){const s=document.getElementById('status');s.textContent=t;s.className='status '+cls}
+
+function toRoman(n){
+ const map=[[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
+ let out='';for(const [v,s] of map)while(n>=v){out+=s;n-=v}return out;
+}
+function romanToInt(s){
+ s=s.toUpperCase();const val={I:1,V:5,X:10,L:50,C:100};let total=0;
+ for(let i=0;i<s.length;i++){let a=val[s[i]],b=val[s[i+1]]||0;if(!a)throw Error('Непознат римски знак');total+=a<b?-a:a}
+ if(total<1||total>100||toRoman(total)!==s)throw Error('Неправилан римски запис: '+s);
+ return total;
+}
+function normalizeLatex(s){
+ return s
+   .replace(/\\left|\\right/g,'')
+   .replace(/\\times|\\cdot/g,'*')
+   .replace(/\\div/g,'/')
+   .replace(/\\,/g,'')
+   .replace(/[×·]/g,'*')
+   .replace(/[÷:]/g,'/')
+   .replace(/[−–—]/g,'-')
+   .replace(/\s+/g,'')
+   .replace(/\\mathrm/g,'')
+   .replace(/[{}]/g,'');
+}
+function tokenize(s){
+ const out=[];let i=0;
+ while(i<s.length){
+   const c=s[i];
+   if(/[0-9]/.test(c)){let j=i+1;while(j<s.length&&/[0-9]/.test(s[j]))j++;out.push({t:'num',v:Number(s.slice(i,j))});i=j;continue}
+   if(/[IVXLC]/i.test(c)){let j=i+1;while(j<s.length&&/[IVXLC]/i.test(s[j]))j++;let raw=s.slice(i,j).toUpperCase();out.push({t:'num',v:romanToInt(raw),raw});i=j;continue}
+   if('()+-*/='.includes(c)){out.push({t:c,v:c});i++;continue}
+   throw Error('Неподржан знак: '+c);
+ }
+ return out;
+}
+function parseValue(tokens){
+ let p=0;
+ function peek(t){return tokens[p]?.t===t}
+ function primary(){
+   if(peek('num'))return tokens[p++].v;
+   if(peek('(')){p++;let v=expr();if(!peek(')'))throw Error('Недостаје затворена заграда )');p++;return v}
+   if(peek('-')){p++;return -primary()}
+   throw Error('Очекиван је број или заграда');
+ }
+ function term(){let v=primary();while(peek('*')||peek('/')){let op=tokens[p++].t,n=primary();if(op==='/'&&n===0)throw Error('Дељење нулом');v=op==='*'?v*n:v/n}return v}
+ function expr(){let v=term();while(peek('+')||peek('-')){let op=tokens[p++].t,n=term();v=op==='+'?v+n:v-n}return v}
+ let v=expr();if(p!==tokens.length)throw Error('Неочекиван део израза');return v;
+}
+function verifyExpression(latex){
+ const normalized=normalizeLatex(latex);
+ if(!normalized)throw Error('Празан резултат');
+ const eq=normalized.split('=');
+ if(eq.length>2)throw Error('Више од једног знака =');
+ if(eq.length===2){
+   if(!eq[0]||!eq[1])throw Error('Са обе стране = мора постојати израз');
+   const left=parseValue(tokenize(eq[0])),right=parseValue(tokenize(eq[1]));
+   return {normalized,left,right,hasEquals:true,correct:Math.abs(left-right)<1e-9};
+ }
+ const value=parseValue(tokenize(normalized));
+ return {normalized,value,hasEquals:false,correct:null};
+}
+window.__verifyExpression=verifyExpression;
+</script>
+
+<script type="module">
+import * as ort from "onnxruntime-web";
+import {InferenceEngine,preprocessStrokes,isStrokeMeaningful} from "https://cdn.jsdelivr.net/npm/ink-on@0.1.0/dist-lib/core.js";
+
+ort.env.wasm.numThreads=1;
+ort.env.wasm.wasmPaths="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.2/dist/";
+
+const MODEL_BASE="https://cdn.jsdelivr.net/gh/kimseungdae/ink-on@2585994ee11fe2ed98065c555c4aae8ee9096209/public/models/comer/";
+const vocab={
+  "word2idx": {
+    "<pad>": 0,
+    "<sos>": 1,
+    "<eos>": 2,
+    "!": 3,
+    "(": 4,
+    ")": 5,
+    "+": 6,
+    ",": 7,
+    "-": 8,
+    ".": 9,
+    "/": 10,
+    "0": 11,
+    "1": 12,
+    "2": 13,
+    "3": 14,
+    "4": 15,
+    "5": 16,
+    "6": 17,
+    "7": 18,
+    "8": 19,
+    "9": 20,
+    "<": 21,
+    "=": 22,
+    ">": 23,
+    "A": 24,
+    "B": 25,
+    "C": 26,
+    "E": 27,
+    "F": 28,
+    "G": 29,
+    "H": 30,
+    "I": 31,
+    "L": 32,
+    "M": 33,
+    "N": 34,
+    "P": 35,
+    "R": 36,
+    "S": 37,
+    "T": 38,
+    "V": 39,
+    "X": 40,
+    "Y": 41,
+    "[": 42,
+    "\\Delta": 43,
+    "\\Pi": 44,
+    "\\alpha": 45,
+    "\\beta": 46,
+    "\\cdot": 47,
+    "\\cdots": 48,
+    "\\cos": 49,
+    "\\div": 50,
+    "\\exists": 51,
+    "\\forall": 52,
+    "\\frac": 53,
+    "\\gamma": 54,
+    "\\geq": 55,
+    "\\in": 56,
+    "\\infty": 57,
+    "\\int": 58,
+    "\\lambda": 59,
+    "\\ldots": 60,
+    "\\leq": 61,
+    "\\lim": 62,
+    "\\limits": 63,
+    "\\log": 64,
+    "\\mu": 65,
+    "\\neq": 66,
+    "\\phi": 67,
+    "\\pi": 68,
+    "\\pm": 69,
+    "\\prime": 70,
+    "\\rightarrow": 71,
+    "\\sigma": 72,
+    "\\sin": 73,
+    "\\sqrt": 74,
+    "\\sum": 75,
+    "\\tan": 76,
+    "\\theta": 77,
+    "\\times": 78,
+    "\\{": 79,
+    "\\}": 80,
+    "]": 81,
+    "^": 82,
+    "_": 83,
+    "a": 84,
+    "b": 85,
+    "c": 86,
+    "d": 87,
+    "e": 88,
+    "f": 89,
+    "g": 90,
+    "h": 91,
+    "i": 92,
+    "j": 93,
+    "k": 94,
+    "l": 95,
+    "m": 96,
+    "n": 97,
+    "o": 98,
+    "p": 99,
+    "q": 100,
+    "r": 101,
+    "s": 102,
+    "t": 103,
+    "u": 104,
+    "v": 105,
+    "w": 106,
+    "x": 107,
+    "y": 108,
+    "z": 109,
+    "{": 110,
+    "|": 111,
+    "}": 112
+  },
+  "idx2word": {
+    "0": "<pad>",
+    "1": "<sos>",
+    "2": "<eos>",
+    "3": "!",
+    "4": "(",
+    "5": ")",
+    "6": "+",
+    "7": ",",
+    "8": "-",
+    "9": ".",
+    "10": "/",
+    "11": "0",
+    "12": "1",
+    "13": "2",
+    "14": "3",
+    "15": "4",
+    "16": "5",
+    "17": "6",
+    "18": "7",
+    "19": "8",
+    "20": "9",
+    "21": "<",
+    "22": "=",
+    "23": ">",
+    "24": "A",
+    "25": "B",
+    "26": "C",
+    "27": "E",
+    "28": "F",
+    "29": "G",
+    "30": "H",
+    "31": "I",
+    "32": "L",
+    "33": "M",
+    "34": "N",
+    "35": "P",
+    "36": "R",
+    "37": "S",
+    "38": "T",
+    "39": "V",
+    "40": "X",
+    "41": "Y",
+    "42": "[",
+    "43": "\\Delta",
+    "44": "\\Pi",
+    "45": "\\alpha",
+    "46": "\\beta",
+    "47": "\\cdot",
+    "48": "\\cdots",
+    "49": "\\cos",
+    "50": "\\div",
+    "51": "\\exists",
+    "52": "\\forall",
+    "53": "\\frac",
+    "54": "\\gamma",
+    "55": "\\geq",
+    "56": "\\in",
+    "57": "\\infty",
+    "58": "\\int",
+    "59": "\\lambda",
+    "60": "\\ldots",
+    "61": "\\leq",
+    "62": "\\lim",
+    "63": "\\limits",
+    "64": "\\log",
+    "65": "\\mu",
+    "66": "\\neq",
+    "67": "\\phi",
+    "68": "\\pi",
+    "69": "\\pm",
+    "70": "\\prime",
+    "71": "\\rightarrow",
+    "72": "\\sigma",
+    "73": "\\sin",
+    "74": "\\sqrt",
+    "75": "\\sum",
+    "76": "\\tan",
+    "77": "\\theta",
+    "78": "\\times",
+    "79": "\\{",
+    "80": "\\}",
+    "81": "]",
+    "82": "^",
+    "83": "_",
+    "84": "a",
+    "85": "b",
+    "86": "c",
+    "87": "d",
+    "88": "e",
+    "89": "f",
+    "90": "g",
+    "91": "h",
+    "92": "i",
+    "93": "j",
+    "94": "k",
+    "95": "l",
+    "96": "m",
+    "97": "n",
+    "98": "o",
+    "99": "p",
+    "100": "q",
+    "101": "r",
+    "102": "s",
+    "103": "t",
+    "104": "u",
+    "105": "v",
+    "106": "w",
+    "107": "x",
+    "108": "y",
+    "109": "z",
+    "110": "{",
+    "111": "|",
+    "112": "}"
+  },
+  "special_tokens": {
+    "pad": 0,
+    "sos": 1,
+    "eos": 2
+  },
+  "vocab_size": 113
+};
+let engine=null,loading=null;
+
+async function ensureModel(){
+ if(engine)return;
+ if(loading)return loading;
+ loading=(async()=>{
+   setStatus("v2: речник је већ у страници; учитавам само ONNX моделе (~7,2 MB)…","loading");
+   const mem=navigator.deviceMemory||4;
+   engine=new InferenceEngine({
+     encoderUrl:MODEL_BASE+"encoder_int8.onnx",
+     decoderUrl:MODEL_BASE+"decoder_int8.onnx",
+     beamWidth:mem<=2?1:2,
+     maxDecodeSteps:40,
+     executionProvider:"wasm"
+   });
+   await engine.init();
+   setStatus("Модел је спреман. Напиши израз и притисни „Препознај и провери“.","");
+ })();
+ try{await loading}catch(e){engine=null;loading=null;throw e}
+}
+
+document.getElementById('recognize').onclick=async()=>{
+ const btn=document.getElementById('recognize');
+ if(!isStrokeMeaningful(strokes)){setStatus("Напиши мало већи израз пре препознавања.","error");return}
+ btn.disabled=true;document.getElementById('recognized').textContent='…';document.getElementById('checked').textContent='…';
+ try{
+   await ensureModel();
+   setStatus("Препознајем цео израз…","loading");
+   const input=preprocessStrokes(strokes);
+   const mode=document.getElementById('mode').value;
+   const res=await engine.recognize(input,vocab,mode);
+   const latex=(res.latex||'').trim();
+   document.getElementById('recognized').textContent=latex||'Ништа није поуздано препознато';
+   const box=document.getElementById('checkBox');
+   if(!latex){
+     box.className='resultBox bad';document.getElementById('checked').textContent='Покушај поново';
+     document.getElementById('detail').textContent='Модел није вратио комплетан математички израз.';
+   }else{
+     try{
+       const v=window.__verifyExpression(latex);
+       if(v.hasEquals){
+         box.className='resultBox '+(v.correct?'good':'bad');
+         document.getElementById('checked').textContent=v.correct?'✅ Израз је математички тачан':'❌ Израз није математички тачан';
+         document.getElementById('detail').textContent='Прочитано као: '+v.normalized+'  →  лево = '+v.left+', десно = '+v.right;
+       }else{
+         box.className='resultBox neutral';document.getElementById('checked').textContent='Вредност израза: '+v.value;
+         document.getElementById('detail').textContent='Додај знак = и резултат ако желиш проверу целе једнакости.';
+       }
+     }catch(parseErr){
+       box.className='resultBox bad';document.getElementById('checked').textContent='Препознато, али не могу да проверим';
+       document.getElementById('detail').textContent=String(parseErr.message||parseErr);
+     }
+   }
+   document.getElementById('technical').textContent=
+     'LaTeX: '+JSON.stringify(latex)+'\n'+
+     'Режим: '+mode+'\n'+
+     'Encoder: '+res.encoderMs+' ms\nDecoder: '+res.decoderMs+' ms\nУкупно: '+res.totalMs+' ms\n'+
+     'Tensor: '+input.width+' × '+input.height+'\nПотеза: '+strokes.length;
+   setStatus("Готово — "+res.totalMs+" ms.","");
+ }catch(e){
+   console.error(e);setStatus("Грешка при учитавању/препознавању: "+(e.message||e),"error");
+   document.getElementById('recognized').textContent='Грешка';
+   document.getElementById('checked').textContent='Погледај поруку изнад';
+   document.getElementById('technical').textContent=String(e.stack||e);
+ }finally{btn.disabled=false}
+};
+</script>
+</body>
+</html>
