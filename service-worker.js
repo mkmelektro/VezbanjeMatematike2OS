@@ -41,6 +41,7 @@ self.addEventListener('fetch', event => {
   if (requestUrl.pathname.startsWith(BASE + 'stroke-v73-spatial-20261108/')) return;
   if (requestUrl.pathname.startsWith(BASE + 'stroke-v731-spatial-20261108/')) return;
   if (requestUrl.pathname.startsWith(BASE + 'stroke-v732-spatial-20261108/')) return;
+  if (requestUrl.pathname.startsWith(BASE + 'stroke-v74-spatial-20261108/')) return;
 
   if (event.request.mode === 'navigate') {
     event.respondWith((async () => {
