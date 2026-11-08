@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="sr-Cyrl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+<meta name="theme-color" content="#6657e8">
+<title>Stroke Spatial Beam — v7.3</title>
+<style>
+:root{--ink:#26344f;--muted:#6d7689;--purple:#6657e8;--green:#14885a;--red:#c94343;--line:#dfe5ef}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;color:var(--ink);background:linear-gradient(180deg,#fffbed,#f4f8ff)}
+button{font:inherit}.wrap{width:min(1050px,96vw);margin:18px auto 50px}.card{background:#fff;border:1px solid #e7ebf3;border-radius:24px;padding:clamp(14px,2.5vw,25px);box-shadow:0 12px 36px rgba(40,55,90,.1);margin-bottom:15px}
+.top{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.top h1{margin:0;font-size:clamp(23px,5vw,38px)}.back{border:2px solid var(--line);border-radius:14px;padding:10px 13px;text-decoration:none;color:var(--ink);font-weight:900}
+.note{background:#f4f1ff;border-radius:16px;padding:12px 14px;line-height:1.5;color:#5f5a76;font-size:14px;margin-top:12px}.note b{color:#5143bd}
+.canvasWrap{position:relative;border:3px solid #d9deea;border-radius:20px;overflow:hidden;background:linear-gradient(#e8edf5 1px,transparent 1px) 0 0/100% 36px,linear-gradient(90deg,#eff2f7 1px,transparent 1px) 0 0/36px 100%,#fff}
+#ink{display:block;width:100%;height:min(34vh,330px);min-height:230px;touch-action:none;cursor:crosshair}.hint{position:absolute;left:16px;top:12px;color:#adb5c3;font-weight:900;pointer-events:none}.hasInk .hint{opacity:0}
+.actions{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-top:13px}.btn{border:0;border-radius:15px;padding:12px 16px;font-weight:950;cursor:pointer}.primary{background:linear-gradient(135deg,var(--purple),#8a78ff);color:#fff}.secondary{border:2px solid var(--line);background:#fff}.btn:disabled{opacity:.5}
+.status{text-align:center;min-height:25px;margin-top:12px;font-weight:900;color:var(--muted)}.loading{color:#6256c9}.error{color:var(--red)}
+.results{display:grid;grid-template-columns:1fr 1fr;gap:12px}.box{border:2px solid #e6eaf1;border-radius:18px;padding:15px;min-height:125px}.label{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:950}.big{font-size:clamp(25px,5vw,40px);font-weight:950;margin-top:10px;word-break:break-word}.good{border-color:#a9dfcc;background:#f3fff9}.bad{border-color:#f0b7b7;background:#fff6f6}.neutral{background:#fafbfe}
+.symbols{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.sym{background:#eef1f7;border-radius:12px;padding:8px 10px;font-weight:950}.sym small{color:var(--muted);font-weight:800;margin-left:4px}
+details{margin-top:14px}summary{font-weight:900;cursor:pointer}.tech{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;white-space:pre-wrap;background:#f7f8fb;border-radius:13px;padding:12px;margin-top:8px}
+@media(max-width:700px){.results{grid-template-columns:1fr}.wrap{width:98vw}.card{padding:13px}.btn{flex:1}.back{width:100%;text-align:center}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<section class="card">
+ <div class="top"><div><div style="font-size:34px">✍️⚡</div><h1>Брзи рукопис <span style="font-size:.45em;color:#6d7689">v6 Stroke Beam</span></h1></div><a class="back" href="./">← Назад</a></div>
+ <div class="note"><b>V7.3:</b> 1 и 7 се сада разликују и по геометрији: 7 тражи хоризонтални врх и може имати средњу цртицу, док 1 фаворизује оштрији горњи прелом и постоље при дну. Operator-lock остаје укључен: јасно укрштени потези за + и × више се не смеју раздвојити. Stroke-ови се и даље групишу <b>просторно</b>, а не samo по редоследу цртања. Најлевљи неупотребљен stroke покреће нови знак, а систем проба да му придружи до још два блиска stroke-а. Тако 4, +, =, × и ÷ могу имати више потеза, чак и ако дете не нацрта све делове знака један за другим. Контекст помаже само да запис буде синтаксно смислен — <b>не користи математичку тачност да “поправи” дететов одговор</b>.</div>
+</section>
+<section class="card">
+ <div id="wrap" class="canvasWrap"><canvas id="ink" width="1200" height="360"></canvas><div class="hint">Напиши нпр. (2−1)=1 — не мораш спајати потезе</div></div>
+ <div class="actions"><button id="undo" class="btn secondary">↶ Последњи потез</button><button id="clear" class="btn secondary">🧽 Обриши</button><button id="go" class="btn primary">🧠 Препознај stroke-ове</button></div>
+ <div id="status" class="status loading">Учитававам стари digit-CNN у позадини…</div>
+</section>
+<section class="card">
+ <div class="results">
+  <div class="box neutral"><div class="label">Прочитано</div><div id="recognized" class="big">—</div><div id="symbols" class="symbols"></div></div>
+  <div id="checkBox" class="box neutral"><div class="label">Математичка провера</div><div id="checked" class="big">—</div><div id="detail" style="margin-top:8px;color:var(--muted);font-weight:800"></div></div>
+ </div>
+ <details><summary>Технички детаљи</summary><div id="tech" class="tech">v6 Stroke Beam — чекам први тест.</div></details>
+</section>
+</div>
+<script>
+const ink=document.getElementById('ink'),ctx=ink.getContext('2d'),wrap=document.getElementById('wrap');
+let strokes=[],active=null,model=null,L=null,modelLoadMs=0;
+ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#273650';ctx.lineWidth=6;
+function pos(e){const r=ink.getBoundingClientRect();return{x:(e.clientX-r.left)*ink.width/r.width,y:(e.clientY-r.top)*ink.height/r.height}}
+function redraw(boxes=[]){ctx.clearRect(0,0,ink.width,ink.height);ctx.strokeStyle='#273650';ctx.lineWidth=6;ctx.lineCap='round';ctx.lineJoin='round';for(const s of strokes){if(!s.points.length)continue;ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);ctx.stroke()}ctx.save();ctx.setLineDash([10,7]);ctx.lineWidth=2;ctx.strokeStyle='rgba(102,87,232,.65)';ctx.font='bold 22px sans-serif';ctx.fillStyle='#6657e8';for(const b of boxes){ctx.strokeRect(b.minX-5,b.minY-5,b.maxX-b.minX+10,b.maxY-b.minY+10);if(b.label)ctx.fillText(b.label,b.minX,b.minY-10)}ctx.restore();wrap.classList.toggle('hasInk',strokes.length>0)}
+ink.onpointerdown=e=>{e.preventDefault();ink.setPointerCapture?.(e.pointerId);active={points:[pos(e)],lineWidth:5,tStart:performance.now(),order:strokes.length};strokes.push(active);redraw()};
+ink.onpointermove=e=>{if(!active)return;e.preventDefault();active.points.push(pos(e));redraw()};
+ink.onpointerup=ink.onpointercancel=()=>{if(active)active.tEnd=performance.now();active=null};
+document.getElementById('clear').onclick=()=>{strokes=[];active=null;redraw();reset()};
+document.getElementById('undo').onclick=()=>{strokes.pop();active=null;redraw();reset()};
+function reset(){recognized.textContent='—';checked.textContent='—';detail.textContent='';symbols.innerHTML='';checkBox.className='box neutral'}
+function setStatus(t,c=''){status.textContent=t;status.className='status '+c}
+async function loadDigitModel(){
+ const t=performance.now();
+ try{
+  const text=await fetch('/VezbanjeMatematike2OS/index.html',{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.text()});
+  const mark='const DIGIT_MODEL=',a=text.indexOf(mark),b=text.indexOf(';\nconst L=',a+mark.length);
+  if(a<0||b<0)throw Error('DIGIT_MODEL није пронађен у старој апликацији');
+  model=JSON.parse(text.slice(a+mark.length,b));L=model.layers;modelLoadMs=Math.round(performance.now()-t);
+  setStatus('Digit-CNN је спреман ('+modelLoadMs+' ms учитавање).','');
+ }catch(e){setStatus('Не могу да учитам стари digit-CNN: '+e.message,'error')}
+}
+loadDigitModel();
+
+function strokeBox(s){let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;for(const p of s.points){minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y)}return{minX,minY,maxX,maxY,w:maxX-minX,h:maxY-minY}}
+
+function makeGroup(from,to){
+ const items=[];
+ let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+ for(let i=from;i<to;i++){
+  const s=strokes[i],b=strokeBox(s),it={i,s,b};items.push(it);
+  minX=Math.min(minX,b.minX);minY=Math.min(minY,b.minY);maxX=Math.max(maxX,b.maxX);maxY=Math.max(maxY,b.maxY);
+ }
+ return{from,to,items,minX,minY,maxX,maxY};
+}
+function groupCompatibility(g){
+ if(g.items.length===1)return 1;
+ const H=Math.max(20,g.maxY-g.minY),W=Math.max(8,g.maxX-g.minX);
+ let penalty=1;
+ for(let i=1;i<g.items.length;i++){
+  const a=g.items[i-1].b,b=g.items[i].b;
+  const xgap=Math.max(0,b.minX-a.maxX,a.minX-b.maxX);
+  const overlapX=Math.max(0,Math.min(a.maxX,b.maxX)-Math.max(a.minX,b.minX));
+  const minW=Math.max(1,Math.min(a.w,b.w));
+  const dt=(g.items[i].s.tStart||0)-(g.items[i-1].s.tEnd||g.items[i-1].s.tStart||0);
+  if(xgap>H*.75 && overlapX/minW<.05) return 0;
+  if(xgap>H*.38)penalty*=.55;
+  if(dt>1800)penalty*=.7;
+ }
+ if(W>H*2.8 && g.items.length>1)penalty*=.7;
+ return penalty;
+}
+function pathStats(s){
+ let len=0;for(let i=1;i<s.points.length;i++)len+=Math.hypot(s.points[i].x-s.points[i-1].x,s.points[i].y-s.points[i-1].y);
+ const a=s.points[0],b=s.points[s.points.length-1],dx=b.x-a.x,dy=b.y-a.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)*180/Math.PI;
+ return{len,dist,straight:len?dist/len:0,dx,dy,ang,a,b,box:strokeBox(s)};
+}
+function lineKind(st){
+ const a=((st.ang%180)+180)%180;
+ if(st.straight<.72)return'curve';
+ if(a<20||a>160)return'h';
+ if(a>70&&a<110)return'v';
+ if(a>=20&&a<=70)return'd1';
+ if(a>=110&&a<=160)return'd2';
+ return'other';
+}
+function parenFromStroke(s,g){
+ const pts=s.points;if(pts.length<6)return null;
+ const w=Math.max(1,g.maxX-g.minX),h=Math.max(1,g.maxY-g.minY);
+ // Parentheses are normally tall, but allow wide child handwriting too.
+ if(h<1.05*w||h<38)return null;
+ // Use geometric vertical bands, not drawing direction.
+ const ys=pts.map(p=>p.y),minY=Math.min(...ys),maxY=Math.max(...ys),spanY=Math.max(1,maxY-minY);
+ const top=pts.filter(p=>p.y<=minY+spanY*.24);
+ const mid=pts.filter(p=>p.y>=minY+spanY*.36&&p.y<=minY+spanY*.64);
+ const bot=pts.filter(p=>p.y>=maxY-spanY*.24);
+ if(!top.length||!mid.length||!bot.length)return null;
+ const med=a=>{const z=a.map(p=>p.x).sort((x,y)=>x-y);return z[Math.floor(z.length/2)]};
+ const xt=med(top),xm=med(mid),xb=med(bot),ends=(xt+xb)/2;
+ const bow=(xm-ends)/w;
+ const endSpread=Math.abs(xt-xb)/w;
+ // Strong curved stroke: middle displaced from both ends; top/bottom need not be identical.
+ if(endSpread>.85)return null;
+ if(bow<-.055)return'(';
+ if(bow>.055)return')';
+ return null;
+}
+function geometryCandidates(g){
+ const ss=g.items.map(x=>pathStats(x.s)),k=ss.map(lineKind),w=Math.max(1,g.maxX-g.minX),h=Math.max(1,g.maxY-g.minY),out=[];
+ if(ss.length===1){
+  if(k[0]==='h'&&w>h*2.0)out.push({ch:'−',conf:.995,why:'1 stroke: хоризонтална линија'});
+  const p=parenFromStroke(g.items[0].s,g);if(p)out.push({ch:p,conf:.975,why:'1 stroke: кандидат за заграду по кривини'});
+ }
+ if(ss.length===2){
+  const hs=k.filter(x=>x==='h').length;
+  if(hs===2){
+   const a=ss[0].box,b=ss[1].box,ov=Math.max(0,Math.min(a.maxX,b.maxX)-Math.max(a.minX,b.minX))/Math.max(1,Math.min(a.w,b.w));
+   if(ov>.35)out.push({ch:'=',conf:.999,why:'2 stroke-а: две паралелне хоризонтале'});
+  }
+  {
+   const a=ss[0].box,b=ss[1].box;
+   const aw=Math.max(1,a.w),ah=Math.max(1,a.h),bw=Math.max(1,b.w),bh=Math.max(1,b.h);
+   const aHoriz=aw>ah*1.45 || k[0]==='h';
+   const bHoriz=bw>bh*1.45 || k[1]==='h';
+   const aTall=ah>aw*1.25 || k[0]==='v' || k[0]==='d1' || k[0]==='d2' || k[0]==='curve';
+   const bTall=bh>bw*1.25 || k[1]==='v' || k[1]==='d1' || k[1]==='d2' || k[1]==='curve';
+   const overlapX=Math.max(0,Math.min(a.maxX,b.maxX)-Math.max(a.minX,b.minX));
+   const overlapY=Math.max(0,Math.min(a.maxY,b.maxY)-Math.max(a.minY,b.minY));
+   const intersects=overlapX>=0 && overlapY>=0 &&
+     ((a.minX<=b.maxX&&a.maxX>=b.minX)&&(a.minY<=b.maxY&&a.maxY>=b.minY));
+   if(intersects && ((aHoriz&&bTall)||(bHoriz&&aTall))){
+     out.push({ch:'+',conf:.9998,why:'2 stroke-а: просторни пресек хоризонталног и високог потеза'});
+   }
+  }
+  if(k.includes('d1')&&k.includes('d2'))out.push({ch:'×',conf:.999,why:'2 stroke-а: укрштене дијагонале'});
+ }
+ if(ss.length===3){
+  const hi=k.findIndex(x=>x==='h');
+  if(hi>=0){
+   const others=ss.filter((_,i)=>i!==hi);
+   const cx=(g.minX+g.maxX)/2,top=others.some(x=>(x.box.minY+x.box.maxY)/2<(ss[hi].box.minY+ss[hi].box.maxY)/2),bot=others.some(x=>(x.box.minY+x.box.maxY)/2>(ss[hi].box.minY+ss[hi].box.maxY)/2);
+   const tiny=others.every(x=>x.len<Math.max(w,h)*.42);
+   if(top&&bot&&tiny)out.push({ch:'÷',conf:.965,why:'3 stroke-а: тачка/линија/тачка'});
+  }
+ }
+ return out;
+}
+function renderGroup(g){
+ const pad=18,w=Math.max(32,Math.ceil(g.maxX-g.minX)+pad*2),h=Math.max(32,Math.ceil(g.maxY-g.minY)+pad*2);
+ const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.lineCap='round';x.lineJoin='round';x.strokeStyle='#fff';x.lineWidth=7;
+ for(const it of g.items){const p=it.s.points;if(!p.length)continue;x.beginPath();x.moveTo(p[0].x-g.minX+pad,p[0].y-g.minY+pad);for(let i=1;i<p.length;i++)x.lineTo(p[i].x-g.minX+pad,p[i].y-g.minY+pad);x.stroke()}
+ return c;
+}
+function preprocessDigit(canvas){
+ const im=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height),d=im.data,w=canvas.width,h=canvas.height;let minx=w,miny=h,maxx=-1,maxy=-1;
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){let a=d[(y*w+x)*4+3];if(a>12){minx=Math.min(minx,x);maxx=Math.max(maxx,x);miny=Math.min(miny,y);maxy=Math.max(maxy,y)}}
+ if(maxx<0)return null;let bw=maxx-minx+1,bh=maxy-miny+1,src=document.createElement('canvas');src.width=w;src.height=h;let s=src.getContext('2d'),id=s.createImageData(w,h);
+ for(let p=0;p<w*h;p++){let a=d[p*4+3];id.data[p*4]=255;id.data[p*4+1]=255;id.data[p*4+2]=255;id.data[p*4+3]=a}s.putImageData(id,0,0);
+ let scale=20/Math.max(bw,bh),dw=Math.max(1,Math.round(bw*scale)),dh=Math.max(1,Math.round(bh*scale)),tmp=document.createElement('canvas');tmp.width=28;tmp.height=28;let t=tmp.getContext('2d');t.fillStyle='black';t.fillRect(0,0,28,28);t.imageSmoothingEnabled=true;t.drawImage(src,minx,miny,bw,bh,Math.floor((28-dw)/2),Math.floor((28-dh)/2),dw,dh);let z=t.getImageData(0,0,28,28).data,out=new Float32Array(784);for(let p=0;p<784;p++)out[p]=z[p*4]/255;return out
+}
+function conv(input,Cin,H,W,weights,bias,Cout,K){let OH=H-K+1,OW=W-K+1,out=Array.from({length:Cout},()=>Array.from({length:OH},()=>new Float32Array(OW)));for(let oc=0;oc<Cout;oc++)for(let y=0;y<OH;y++)for(let x=0;x<OW;x++){let s=bias[oc];for(let ic=0;ic<Cin;ic++)for(let ky=0;ky<K;ky++)for(let kx=0;kx<K;kx++){let v=Cin===1?input[(y+ky)*W+x+kx]:input[ic][y+ky][x+kx];s+=v*weights[oc][ic][ky][kx]}out[oc][y][x]=s>0?s:0}return out}
+function pool(x,C,H,W){let OH=H>>1,OW=W>>1,o=Array.from({length:C},()=>Array.from({length:OH},()=>new Float32Array(OW)));for(let c=0;c<C;c++)for(let y=0;y<OH;y++)for(let x0=0;x0<OW;x0++){let yy=y*2,xx=x0*2;o[c][y][x0]=Math.max(x[c][yy][xx],x[c][yy][xx+1],x[c][yy+1][xx],x[c][yy+1][xx+1])}return o}
+function cnnPredict(v){let a=conv(v,1,28,28,L.c1weight,L.c1bias,12,5);a=pool(a,12,24,24);a=conv(a,12,12,12,L.c2weight,L.c2bias,24,3);a=pool(a,24,10,10);let f=new Float32Array(600),q=0;for(let c=0;c<24;c++)for(let y=0;y<5;y++)for(let x=0;x<5;x++)f[q++]=a[c][y][x];let h=new Float32Array(72);for(let j=0;j<72;j++){let s=L.f1bias[j],ww=L.f1weight[j];for(let i=0;i<600;i++)s+=ww[i]*f[i];h[j]=s>0?s:0}let z=new Float32Array(10);for(let k=0;k<10;k++){let s=L.f2bias[k],ww=L.f2weight[k];for(let j=0;j<72;j++)s+=ww[j]*h[j];z[k]=s}let mx=Math.max(...z),ex=Array.from(z,v=>Math.exp(v-mx)),sum=ex.reduce((a,b)=>a+b,0);return ex.map(x=>x/sum)}
+function loadProtos(){try{return JSON.parse(localStorage.getItem('digitPrototypesV3')||'{}')}catch{return{}}}
+function cosine(v,a){let dot=0,n1=0,n2=0;for(let i=0;i<784;i++){let x=v[i],y=a[i]/255;dot+=x*y;n1+=x*x;n2+=y*y}return n1&&n2?dot/Math.sqrt(n1*n2):0}
+function digitCandidates(v,topN=3){
+ let p=cnnPredict(v),proto=loadProtos(),sims=new Array(10).fill(0),bestSim=0;
+ for(let d=0;d<10;d++)if(proto[d])for(const a of proto[d])sims[d]=Math.max(sims[d],cosine(v,a));
+ bestSim=Math.max(...sims);
+ if(bestSim>.60){let e=sims.map(s=>Math.exp((s-.55)*13)),sum=e.reduce((a,b)=>a+b,0);for(let d=0;d<10;d++)p[d]=.68*p[d]+.32*e[d]/sum}
+ return p.map((conf,d)=>({ch:String(d),conf,why:'digit-CNN'})).sort((a,b)=>b.conf-a.conf).slice(0,topN);
+}
+
+function makeGroupIds(ids){
+ const items=[];let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+ for(const i of ids){
+  const s=strokes[i],b=strokeBox(s),it={i,s,b};items.push(it);
+  minX=Math.min(minX,b.minX);minY=Math.min(minY,b.minY);maxX=Math.max(maxX,b.maxX);maxY=Math.max(maxY,b.maxY);
+ }
+ return{ids:[...ids],items,minX,minY,maxX,maxY};
+}
+function spatialCompatibility(g){
+ if(g.items.length===1)return 1;
+ const H=Math.max(20,g.maxY-g.minY),W=Math.max(8,g.maxX-g.minX);
+ const centers=g.items.map(it=>({x:(it.b.minX+it.b.maxX)/2,y:(it.b.minY+it.b.maxY)/2,b:it.b}));
+ let score=1;
+ for(let i=0;i<centers.length;i++)for(let j=i+1;j<centers.length;j++){
+   const a=centers[i],b=centers[j];
+   const xgap=Math.max(0,b.b.minX-a.b.maxX,a.b.minX-b.b.maxX);
+   const ygap=Math.max(0,b.b.minY-a.b.maxY,a.b.minY-b.b.maxY);
+   const ox=Math.max(0,Math.min(a.b.maxX,b.b.maxX)-Math.max(a.b.minX,b.b.minX));
+   const oy=Math.max(0,Math.min(a.b.maxY,b.b.maxY)-Math.max(a.b.minY,b.b.minY));
+   if(xgap>H*.75 && ygap>H*.25 && ox===0 && oy===0)return 0;
+   if(xgap>H*.50)score*=.55;
+   if(ygap>H*.55)score*=.65;
+ }
+ if(W>H*3.1 && g.items.length>1)score*=.55;
+ return score;
+}
+let candidateCache=new Map();
+function candidateListIds(ids){
+ const cacheKey=[...ids].sort((a,b)=>a-b).join(',');
+ if(candidateCache.has(cacheKey))return candidateCache.get(cacheKey);
+ const g=makeGroupIds(ids),compat=spatialCompatibility(g);
+ if(!compat)return[];
+ let out=geometryCandidates(g).map(x=>({...x,conf:x.conf*compat,g,count:ids.length}));
+ const v=preprocessDigit(renderGroup(g));
+ if(v){
+   const digits=digitCandidates(v,ids.length===1?3:3);
+   for(const d of digits){
+     let shapePrior=1;
+     if(ids.length===3)shapePrior=.80;
+     else if(ids.length===2)shapePrior=.92;
+     let dc={...d,conf:d.conf*compat*shapePrior,g,count:ids.length};
+     dc=oneSevenCorrection(dc,g);
+     out.push(dc);
+   }
+ }
+ const bestByChar=new Map();
+ for(const c of out){const old=bestByChar.get(c.ch);if(!old||c.conf>old.conf)bestByChar.set(c.ch,c)}
+ const result=[...bestByChar.values()].filter(c=>c.conf>.025).sort((a,b)=>b.conf-a.conf).slice(0,6);
+ candidateCache.set(cacheKey,result);
+ return result;
+}
+function nearbyStrokeIds(anchor, unused){
+ const ab=strokeBox(strokes[anchor]),acy=(ab.minY+ab.maxY)/2,ah=Math.max(25,ab.h);
+ return [...unused].filter(i=>i!==anchor).map(i=>{
+   const b=strokeBox(strokes[i]),cy=(b.minY+b.maxY)/2;
+   const xgap=Math.max(0,b.minX-ab.maxX,ab.minX-b.maxX);
+   const ygap=Math.max(0,b.minY-ab.maxY,ab.minY-b.maxY);
+   const score=xgap/ah + ygap/ah + Math.abs(cy-acy)/(ah*3);
+   return{i,score,b};
+ }).filter(x=>x.score<1.25).sort((a,b)=>a.score-b.score).slice(0,5).map(x=>x.i);
+}
+function groupCenterX(g){return(g.minX+g.maxX)/2}
+function parenSpatialBonus(parts,idx){
+ const p=parts[idx],g=p.g;
+ if(p.ch!=='('&&p.ch!==')')return 0;
+ const cx=(g.minX+g.maxX)/2,w=Math.max(1,g.maxX-g.minX),h=Math.max(1,g.maxY-g.minY);
+ let bonus=0;
+ // Parentheses should usually be tall and relatively narrow.
+ const ratio=h/w;
+ if(ratio>1.8)bonus+=.28;
+ else if(ratio>1.25)bonus+=.12;
+ else bonus-=.22;
+
+ const prev=parts[idx-1],next=parts[idx+1];
+ if(p.ch==='('){
+   // A left parenthesis should open before an operand/subexpression.
+   if(!prev || ['+','−','-','×','÷','=','('].includes(prev.ch))bonus+=.18;
+   else bonus-=.35;
+   if(next && /\d|\(/.test(next.ch))bonus+=.16;
+ }
+ if(p.ch===')'){
+   // A right parenthesis should close after an operand/subexpression.
+   if(prev && (/\d/.test(prev.ch)||prev.ch===')'))bonus+=.20;
+   else bonus-=.38;
+   if(!next || ['+','−','-','×','÷','=',')'].includes(next.ch))bonus+=.12;
+ }
+ return bonus;
+}
+function structuralPartBonus(parts){
+ let b=contextualPartBonus(parts);
+ for(let i=0;i<parts.length;i++)b+=parenSpatialBonus(parts,i);
+ // Strongly penalize consecutive opening parentheses unless truly nested syntax develops.
+ for(let i=1;i<parts.length;i++)if(parts[i-1].ch==='('&&parts[i].ch==='(')b-=.9;
+ // Penalize two closing parentheses if there was no nested opening.
+ return b;
+}
+
+function grammarScore(s,final=false){
+ let bal=0,eq=0,prev='start',score=0;
+ let openStack=[];
+ for(let i=0;i<s.length;i++){
+  const c=s[i],digit=/\d/.test(c),op='+-×÷−'.includes(c);
+  if(digit){
+    if(prev===')')return-Infinity;
+    if(prev==='digit') score+=.04; // multi-digit numbers are fine
+    if(prev==='('||prev==='op'||prev==='='||prev==='start') score+=.08;
+    prev='digit';continue;
+  }
+  if(c==='('){
+    if(prev==='digit'||prev===')'||prev==='=')return-Infinity;
+    if(prev==='(')score-=.65;
+    bal++;openStack.push(i);score+=.18;prev='(';continue;
+  }
+  if(c===')'){
+    if(bal<=0||prev==='start'||prev==='('||prev==='op'||prev==='=')return-Infinity;
+    bal--;openStack.pop();score+=.30;prev=')';continue;
+  }
+  if(op){
+    const unaryMinus=(c==='−'||c==='-')&&(prev==='start'||prev==='('||prev==='=');
+    if(!unaryMinus && prev!=='digit'&&prev!==')')return-Infinity;
+    // Inside parentheses we strongly expect a real operation between operands.
+    if(bal>0 && (prev==='digit'||prev===')'))score+=.34;
+    else score+=.12;
+    prev='op';continue;
+  }
+  if(c==='='){
+    if(eq||((prev!=='digit')&&prev!==')')||bal!==0)return-Infinity;
+    eq++;score+=.32;prev='=';continue;
+  }
+  return-Infinity;
+ }
+ if(final){
+   if(bal!==0||prev==='op'||prev==='('||prev==='='||prev==='start')return-Infinity;
+   score+=.35;
+ }
+ if(bal===0)score+=.25;
+ if(eq===1)score+=.18;
+
+ // Strong contextual bonus for a completed parenthesized arithmetic form.
+ // Examples: (2-1), (12+3), (4×5), (8÷2)
+ const parenSimple=/\((?:\d+|\([^()]+\))\s*[+−\-×÷]\s*(?:\d+|\([^()]+\))\)/;
+ if(parenSimple.test(s))score+=1.15;
+
+ // Penalize suspicious long digit runs created by swallowing brackets/operators.
+ if(/\d{4,}/.test(s))score-=.75;
+ return score;
+}
+
+function contextualPartBonus(parts){
+ let bonus=0;
+ for(let i=0;i<parts.length;i++){
+   const p=parts[i];
+   // If a candidate is a 2-stroke operator, strongly prefer keeping it together.
+   if(p.count===2 && ['+','×','='].includes(p.ch)) bonus+=1.05;
+   if(p.count===3 && p.ch==='÷') bonus+=.55;
+   if((p.ch==='('||p.ch===')') && p.count===1) bonus+=.28;
+ }
+ return bonus;
+}
+
+function segmentAngle(a,b){
+ return Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;
+}
+function localStrokeFeatures(g){
+ const pts=g.items.flatMap(it=>it.s.points);
+ const minX=Math.min(...pts.map(p=>p.x)),maxX=Math.max(...pts.map(p=>p.x));
+ const minY=Math.min(...pts.map(p=>p.y)),maxY=Math.max(...pts.map(p=>p.y));
+ const w=Math.max(1,maxX-minX),h=Math.max(1,maxY-minY);
+ const top=pts.filter(p=>p.y<=minY+h*.28);
+ const mid=pts.filter(p=>p.y>=minY+h*.35&&p.y<=minY+h*.68);
+ const bot=pts.filter(p=>p.y>=maxY-h*.22);
+ const spanX=a=>a.length?Math.max(...a.map(p=>p.x))-Math.min(...a.map(p=>p.x)):0;
+ const topSpan=spanX(top)/w,midSpan=spanX(mid)/w,botSpan=spanX(bot)/w;
+
+ let firstAngle=90,firstCornerSharpness=0;
+ for(const it of g.items){
+   const p=it.s.points;
+   if(p.length>=3){
+     const n=Math.max(1,Math.floor(p.length*.22));
+     const a=p[0],b=p[Math.min(n,p.length-1)],c=p[Math.min(n*2,p.length-1)];
+     firstAngle=segmentAngle(a,b);
+     let a1=segmentAngle(a,b),a2=segmentAngle(b,c);
+     let d=Math.abs(a2-a1);while(d>180)d=360-d;
+     firstCornerSharpness=Math.max(firstCornerSharpness,d);
+   }
+ }
+
+ // Detect explicit short horizontal middle crossbar, common handwritten 7.
+ let middleCrossbar=false, bottomBase=false, topBar=false;
+ for(const it of g.items){
+   const st=pathStats(it.s),k=lineKind(st),b=st.box;
+   const cy=(b.minY+b.maxY)/2;
+   if(k==='h'){
+     if(cy>minY+h*.30 && cy<minY+h*.72 && b.w>w*.28)middleCrossbar=true;
+     if(cy>minY+h*.72 && b.w>w*.28)bottomBase=true;
+     if(cy<minY+h*.30 && b.w>w*.38)topBar=true;
+   }
+ }
+ // Also infer bars from a single continuous stroke's occupied span.
+ if(topSpan>.62)topBar=true;
+ if(botSpan>.48)bottomBase=true;
+
+ return{w,h,ratio:h/w,topSpan,midSpan,botSpan,firstAngle,firstCornerSharpness,middleCrossbar,bottomBase,topBar};
+}
+function oneSevenCorrection(candidate,g){
+ if(candidate.ch!=='1'&&candidate.ch!=='7')return candidate;
+ const f=localStrokeFeatures(g);
+ let score1=0,score7=0;
+
+ // 7: broad horizontal top and then a descending diagonal.
+ if(f.topBar)score7+=2.2;
+ if(f.topSpan>.58)score7+=1.2;
+ if(f.middleCrossbar)score7+=2.0;
+ if(f.ratio<2.15)score7+=.45;
+
+ // 1: tall/narrow, sharp initial hook/slant, often a base at the bottom.
+ if(f.ratio>2.1)score1+=1.35;
+ if(f.topSpan<.45)score1+=.9;
+ if(f.firstCornerSharpness>28)score1+=.75;
+ if(f.bottomBase)score1+=1.7;
+
+ // Strong discriminators.
+ if(f.middleCrossbar)score1-=1.2;
+ if(f.topBar&&f.topSpan>.70)score1-=.8;
+ if(f.bottomBase)score7-=.65;
+
+ // Preserve CNN evidence, but geometry can override it.
+ if(candidate.ch==='1')score1+=1.0; else score7+=1.0;
+
+ if(score1>score7+0.55){
+   return {...candidate,ch:'1',conf:Math.min(.999,Math.max(candidate.conf,.90)),why:candidate.why+' + 1/7 геометрија: оштар врх/узак облик/постолје'};
+ }
+ if(score7>score1+0.55){
+   return {...candidate,ch:'7',conf:Math.min(.999,Math.max(candidate.conf,.90)),why:candidate.why+' + 1/7 геометрија: хоризонталан врх/средња цртица'};
+ }
+ return candidate;
+}
+
+function beamRecognize(){
+ candidateCache=new Map();
+ const N=strokes.length,beamWidth=14;
+ const all=new Set(Array.from({length:N},(_,i)=>i));
+ let beam=[{unused:all,text:'',score:0,parts:[]}],expansions=0,rounds=0;
+ while(beam.length && rounds<N+3){
+   rounds++;
+   if(beam.every(x=>x.unused.size===0))break;
+   const next=[];
+   for(const st of beam){
+     if(st.unused.size===0){next.push(st);continue}
+     // Reading order is spatial: choose leftmost remaining stroke.
+     const anchor=[...st.unused].sort((i,j)=>{
+       const a=strokeBox(strokes[i]),b=strokeBox(strokes[j]);
+       return a.minX-b.minX || a.minY-b.minY;
+     })[0];
+     const near=nearbyStrokeIds(anchor,st.unused);
+     const locked=forcedOperatorGroup(anchor,st.unused);
+     const groupIdSets=[];
+     if(locked){
+       // If two strokes clearly form + or ×, keep the pair together.
+       groupIdSets.push(locked);
+     }else{
+       groupIdSets.push([anchor]);
+       for(const j of near)groupIdSets.push([anchor,j]);
+       for(let a=0;a<near.length;a++)for(let b=a+1;b<near.length;b++)groupIdSets.push([anchor,near[a],near[b]]);
+     }
+     for(const ids of groupIdSets){
+       if(ids.some(i=>!st.unused.has(i)))continue;
+       const cand=candidateListIds(ids);expansions+=cand.length;
+       for(const c of cand){
+         const text=st.text+c.ch,gs=grammarScore(text,false);
+         if(!Number.isFinite(gs))continue;
+         const conf=Math.max(.0001,c.conf),groupPenalty=ids.length>1?-.025*(ids.length-1):0;
+         const newParts=[...st.parts,c],ctxBonus=structuralPartBonus(newParts);
+         const unused=new Set(st.unused);ids.forEach(i=>unused.delete(i));
+         next.push({unused,text,score:st.score+Math.log(conf)+gs+groupPenalty+ctxBonus,parts:newParts});
+       }
+     }
+   }
+   next.sort((a,b)=>b.score-a.score);
+   beam=next.slice(0,beamWidth);
+   if(!beam.length)break;
+ }
+ const finals=[];
+ for(const st of beam){
+   if(st.unused.size!==0)continue;
+   const gs=grammarScore(st.text,true);if(!Number.isFinite(gs))continue;
+   // IMPORTANT: syntax gets a bonus; mathematical correctness does NOT influence recognition.
+   let bonus=gs+structuralPartBonus(st.parts),verified=null;
+   try{verified=verify(st.text);bonus+=0.08}catch{}
+   finals.push({...st,score:st.score+bonus,verified});
+ }
+ finals.sort((a,b)=>b.score-a.score);
+ const complete=beam.filter(x=>x.unused.size===0).sort((a,b)=>b.score-a.score);
+ return{best:finals[0]||complete[0]||null,alternatives:finals.slice(0,5),expansions};
+}
+
+document.getElementById('go').onclick=async()=>{
+ const btn=document.getElementById('go');
+ if(!strokes.length)return setStatus('Напиши израз.','error');
+ if(!model){setStatus('Digit-CNN се још учитава…','loading');await loadDigitModel();if(!model)return}
+ btn.disabled=true;const t0=performance.now();
+ try{
+   const out=beamRecognize(),tTotal=performance.now()-t0,best=out.best;
+   if(!best)throw Error('Нисам нашао валидну поделу stroke-ова.');
+   const expr=best.text;
+   recognized.textContent=expr||'—';symbols.innerHTML='';
+   best.parts.forEach(x=>{
+     let e=document.createElement('span');e.className='sym';
+     e.innerHTML=x.ch+' <small>'+Math.round(x.conf*100)+'% · '+x.count+'s</small>';
+     symbols.appendChild(e);
+   });
+   redraw(best.parts.map(x=>({...x.g,label:x.ch+'/'+x.count})));
+   try{
+     let v=verify(expr);
+     if(v.eq){checkBox.className='box '+(v.ok?'good':'bad');checked.textContent=v.ok?'✅ Једнакост је тачна':'❌ Једнакост није тачна';detail.textContent='Лево = '+v.l+', десно = '+v.r}
+     else{checkBox.className='box neutral';checked.textContent='Вредност израза: '+v.v;detail.textContent='Додај = и резултат за проверу једнакости.'}
+   }catch(e){checkBox.className='box bad';checked.textContent='Не могу да проверим';detail.textContent=e.message}
+   const alt=out.alternatives.map((a,i)=>(i+1)+'. '+a.text+'  score='+a.score.toFixed(2)).join('\n');
+   tech.textContent='v7.3 SPATIAL-BEAM\nУкупно: '+tTotal.toFixed(1)+' ms\nStroke-ова: '+strokes.length+'\nКандидата/експанзија: '+out.expansions+'\nИзабрано: '+expr+'\n\nПодела:\n'+best.parts.map((x,i)=>(i+1)+'. '+x.ch+' ← stroke '+x.g.ids.map(i=>i+1).join('+')+'  conf='+Math.round(x.conf*100)+'%  '+x.why).join('\n')+'\n\nНајбоље алтернативе:\n'+alt;
+   setStatus('Готово — '+tTotal.toFixed(0)+' ms · '+strokes.length+' stroke-ова → '+best.parts.length+' знакова.','');
+ }catch(e){console.error(e);setStatus('Грешка: '+e.message,'error');tech.textContent=String(e.stack||e)}
+ finally{btn.disabled=false}
+};
+</script>
+</body></html>
