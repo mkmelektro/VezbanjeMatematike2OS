@@ -24,6 +24,11 @@ button,input{font:inherit}.hidden{display:none!important}
 .vertical{width:min(360px,100%);margin:12px auto 5px;display:grid;grid-template-columns:55px 1fr 1fr;grid-template-rows:30px 75px 75px 5px 125px;align-items:center;justify-items:center}.lab{font-weight:950}.op{font-size:48px;font-weight:950;grid-row:3;grid-column:1}.aT{grid-column:2;grid-row:2}.aO{grid-column:3;grid-row:2}.bT{grid-column:2;grid-row:3}.bO{grid-column:3;grid-row:3}.n{font-size:64px;font-weight:950}.line{grid-column:1/4;grid-row:4;height:4px;background:var(--ink);width:100%;border-radius:3px}.answerBox{grid-row:5;width:110px;height:108px;border:4px dashed #aab4c6;border-radius:20px;background:#fbfcff;display:grid;place-items:center;font-size:58px;font-weight:950}.ansT{grid-column:2}.ansO{grid-column:3}.answerBox.active{border-color:var(--purple);background:#f8f6ff}
 .keypad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:min(520px,100%);margin:15px auto}.key{border:0;border-radius:14px;padding:13px 5px;font-size:24px;font-weight:950;background:#eef2f8;cursor:pointer}.key:active{transform:scale(.96)}
 .feedback{text-align:center;min-height:38px;font-size:19px;font-weight:950;margin-top:8px}.good{color:var(--good)}.bad{color:var(--bad)}
+.guide{margin:14px 0 8px;padding:13px 15px;border-radius:17px;background:linear-gradient(135deg,#f4f1ff,#fff9e6);border:1px solid #e4defe;line-height:1.5;font-size:14px}.guide b{color:var(--purple)}
+.romanAnswer{min-height:86px;width:min(520px,100%);margin:14px auto;border:4px dashed #aab4c6;border-radius:20px;background:#fbfcff;display:flex;align-items:center;justify-content:center;padding:10px 16px;font-family:Georgia,"Times New Roman",serif;font-size:clamp(42px,9vw,68px);font-weight:900;letter-spacing:7px;color:var(--ink)}.romanAnswer.empty:after{content:"?";color:#b7becc;letter-spacing:0}
+.romanKeys{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;width:min(560px,100%);margin:14px auto}.romanKey{border:0;border-radius:15px;padding:14px 5px;background:#eeeaff;font-family:Georgia,"Times New Roman",serif;font-size:30px;font-weight:900;color:#493db1;cursor:pointer}.romanKey:active{transform:scale(.96)}.romanKey.erase{grid-column:span 5;font-family:inherit;font-size:16px;background:#f2f4f8;color:var(--ink)}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;width:min(620px,100%);margin:16px auto}.choice{border:2px solid #e3e7ef;border-radius:18px;background:#fff;padding:16px 10px;font-weight:950;font-size:22px;cursor:pointer;min-height:62px}.choice:hover{border-color:#beb5ff;background:#faf9ff}.choice.selected{border-color:var(--purple);background:#f0edff;box-shadow:0 0 0 4px rgba(102,87,232,.10)}
+.romanBig{font-family:Georgia,"Times New Roman",serif;letter-spacing:3px}
 .scratchWrap{margin-top:20px;border-top:1px solid var(--line);padding-top:15px}.scratch{width:100%;height:220px;border:2px solid #e3e8f0;border-radius:18px;background:linear-gradient(#edf1f7 1px,transparent 1px) 0 0/100% 28px,linear-gradient(90deg,#edf1f7 1px,transparent 1px) 0 0/28px 100%,#fff;touch-action:none}
 .result{text-align:center}.big{font-size:75px}.pillRow{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}.pill{background:#f2f5fb;padding:10px 14px;border-radius:14px;font-weight:900}
 @media(max-width:520px){.wrap{width:97vw}.card{padding:14px}.tag{display:none}.vertical{grid-template-columns:42px 1fr 1fr;grid-template-rows:25px 64px 64px 4px 104px}.n{font-size:52px}.answerBox{width:92px;height:90px;font-size:48px}.keypad{grid-template-columns:repeat(5,1fr)}}
@@ -41,7 +46,7 @@ button,input{font:inherit}.hidden{display:none!important}
 </section>
 
 <section id="units" class="card hidden">
-  <div class="head"><div><h2>Наставне целине</h2><div class="small">5 целина · 32 пробне лекције</div></div><button class="btn secondary" data-home>🏠 Почетак</button></div>
+  <div class="head"><div><h2>Наставне целине</h2><div class="small">6 целина · 40 пробних лекција</div></div><button class="btn secondary" data-home>🏠 Почетак</button></div>
   <div id="unitGrid" class="grid"></div>
 </section>
 
@@ -52,6 +57,7 @@ button,input{font:inherit}.hidden{display:none!important}
 
 <section id="game" class="card hidden">
   <div class="head"><div><h2 id="lessonName"></h2><div id="lessonHint" class="small"></div></div><button class="btn secondary" id="backLessons">← Лекције</button></div>
+  <div id="lessonGuide" class="guide hidden"></div>
   <div class="problemTop"><span id="qNo">Задатак 1/10</span><span id="score">Тачно: 0</span></div>
   <div class="progress"><div id="bar"></div></div>
   <div id="context" class="context"></div>
@@ -90,6 +96,16 @@ const units=[
  ]},
  {id:'u5',emo:'🔷',title:'5. Геометрија, време и завршно вежбање',desc:'Фигуре, симетрија, сат и мешовити задаци.',lessons:[
   ['Квадрат, правоугаоник и троугао','shape'],['Симетрија','sym'],['Гледамо на сат','time'],['Новац и практични задаци','money'],['Завршни изазов','final']
+ ]},
+ {id:'u6',emo:'🏛️',title:'6. Римски бројеви',desc:'Разумемо знакове и правила, па читамо и записујемо бројеве до 100.',lessons:[
+  ['Упознај знакове I, V, X, L и C','romanSymbols','Сваки знак има своју вредност: <b>I=1, V=5, X=10, L=50, C=100</b>. Прво научи шта сваки знак значи.'],
+  ['Када се вредности сабирају','romanAdd','Када већи или једнак знак стоји испред мањег, вредности <b>сабирамо</b>. На пример: XII = 10 + 1 + 1 = 12.'],
+  ['Када се вредност одузима','romanSub','Када мањи знак стоји испред већег, он се <b>одузима</b>: IV = 5 − 1 = 4, IX = 10 − 1 = 9, XL = 50 − 10 = 40, XC = 100 − 10 = 90.'],
+  ['Напиши римски број до 20','romanWrite20','Сада ти састављаш римски број. Користи I, V и X и пази на IV и IX.'],
+  ['Напиши римски број до 100','romanWrite100','Комбинуј X, L и C са јединицама. Пример: 64 = LXIV.'],
+  ['Преведи римски у обичан број','romanRead100','Читај слева надесно и примени правило: мањи испред већег се одузима, у осталим случајевима се сабира.'],
+  ['Који римски број је већи?','romanCompare','Не пореди дужину записа. Прво утврди вредност оба римска броја, па тек онда упореди.'],
+  ['Пронађи исправан запис','romanCorrect','Римски запис има правила: I и X могу да се понове највише три пута заредом, V и L се не понављају, а одузимање користимо само у правилним паровима као IV, IX, XL и XC.']
  ]}
 ];
 let unit=null,lessonIndex=0,lesson=null,q=0,correct=0,current=null,typed='',active=1,questions=[];
@@ -105,6 +121,21 @@ function split(n){return n<10?['',String(n)]:[String(Math.floor(n/10)),String(n%
 function unitKey(){return unit.id+'_'+lessonIndex}
 function renderUnits(){let g=$('unitGrid');g.innerHTML='';units.forEach((u,i)=>{let done=u.lessons.reduce((s,_,j)=>s+(starsFor(u.id+'_'+j)>0?1:0),0);let b=document.createElement('button');b.className='unit';b.innerHTML='<div class="emo">'+u.emo+'</div><h3>'+u.title+'</h3><p>'+u.desc+'</p><div class="count">'+done+'/'+u.lessons.length+' започетих лекција</div>';b.onclick=()=>openUnit(i);g.appendChild(b)})}
 function openUnit(i){unit=units[i];$('unitTitle').textContent=unit.title;$('unitDesc').textContent=unit.desc;let h=$('lessons');h.innerHTML='';unit.lessons.forEach((l,j)=>{let s=starsFor(unit.id+'_'+j);let b=document.createElement('button');b.className='lesson';b.innerHTML='<div class="num">'+(j+1)+'</div><div class="lesson-main"><div class="lesson-title">'+l[0]+'</div><div class="lesson-sub">10 задатака · оригинални пробни задаци</div></div><div class="stars">'+'★'.repeat(s)+'☆'.repeat(3-s)+'</div>';b.onclick=()=>startLesson(j);h.appendChild(b)});show('lessonsView')}
+
+function toRoman(n){
+ const map=[[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
+ let out=''; for(const [v,s] of map){while(n>=v){out+=s;n-=v}} return out;
+}
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){let j=r(0,i);[a[i],a[j]]=[a[j],a[i]]}return a}
+const romanAddNumbers=[2,3,6,7,8,11,12,13,16,17,18,21,22,23,26,27,28,31,32,33,36,37,38,51,52,53,56,57,58,61,62,63,66,67,68];
+const romanSubNumbers=[4,9,14,19,24,29,34,39,40,44,49,54,59,64,69,74,79,84,89,90,94,99];
+const romanCorrectSets=[
+ [4,'IV',['IV','IIII','VI']], [9,'IX',['IX','VIIII','XI']], [14,'XIV',['XIV','XIIII','XVI']],
+ [19,'XIX',['XIX','XVIIII','XXI']], [40,'XL',['XL','XXXX','LX']], [44,'XLIV',['XLIV','XXXXIV','IL']],
+ [49,'XLIX',['XLIX','IL','XXXXVIIII']], [90,'XC',['XC','LXXXX','CX']], [94,'XCIV',['XCIV','ICIV','LXXXXIV']],
+ [99,'XCIX',['XCIX','IC','LXXXXVIIII']]
+];
+
 function gen(type){
  let a,b,ans,text,ctx='',vertical=false,op='';
  switch(type){
@@ -140,22 +171,67 @@ function gen(type){
   case'time':a=r(1,11);b=pick([1,2,3]);ans=(a+b)%12||12;text='Сада је '+a+':00. Колико ће бити за '+b+' h?';break;
   case'money':a=r(2,8)*10;b=r(1,a/10-1)*10;ans=a-b;text='Имаш '+a+' дин, потрошиш '+b+' дин.';ctx='Колико динара остаје?';break;
   case'final':return gen(pick(['addCarry','subBorrow','mulMix','divIntro','frac','time','money']));
+  case'romanSymbols':{
+    let pair=pick([['I','1'],['V','5'],['X','10'],['L','50'],['C','100']]);
+    let pool=['1','5','10','50','100'].filter(x=>x!==pair[1]);
+    return{mode:'choice',ans:pair[1],choices:shuffle([pair[1],...shuffle(pool).slice(0,3)]),text:'Колико вреди римски знак '+pair[0]+'?',ctx:'Изабери његову вредност.'};
+  }
+  case'romanAdd':{
+    let n=pick(romanAddNumbers);return{mode:'number',ans:n,text:toRoman(n)+' = ?',ctx:'Овде нема мањег знака испред већег — сабери вредности знакова.'};
+  }
+  case'romanSub':{
+    let n=pick(romanSubNumbers);let rm=toRoman(n);let tip=rm.includes('XC')?'XC = 100 − 10':rm.includes('XL')?'XL = 50 − 10':rm.includes('IX')?'IX = 10 − 1':rm.includes('IV')?'IV = 5 − 1':'Потражи мањи знак испред већег.';
+    return{mode:'number',ans:n,text:rm+' = ?',ctx:tip+'. Остали делови записа се сабирају.'};
+  }
+  case'romanWrite20':{
+    let n=r(1,20);return{mode:'roman',ans:toRoman(n),text:'Запиши број '+n+' римским цифрама.',ctx:'Састави запис помоћу дугмади I, V и X.'};
+  }
+  case'romanWrite100':{
+    let n=r(21,100);return{mode:'roman',ans:toRoman(n),text:'Запиши број '+n+' римским цифрама.',ctx:'Размисли прво о десетицама, па о јединицама.'};
+  }
+  case'romanRead100':{
+    let n=r(1,100);return{mode:'number',ans:n,text:toRoman(n)+' = ?',ctx:'Претвори римски запис у обичан број.'};
+  }
+  case'romanCompare':{
+    let a=r(1,100),b=r(1,100);if(Math.random()<.15)b=a;
+    let ans=a>b?'Леви':a<b?'Десни':'Једнаки';
+    return{mode:'choice',ans,choices:['Леви','Десни','Једнаки'],text:'<span class="romanBig">'+toRoman(a)+'</span>  ?  <span class="romanBig">'+toRoman(b)+'</span>',html:true,ctx:'Који запис представља већи број?'};
+  }
+  case'romanCorrect':{
+    let set=pick(romanCorrectSets);return{mode:'choice',ans:set[1],choices:shuffle(set[2]),text:'Који је исправан римски запис за број '+set[0]+'?',ctx:'Пази на понављање знакова и на правилне парове за одузимање.'};
+  }
  }
  if(!text)text=a+' '+op+' '+b+' = ?';
- return{a,b,ans,text,ctx,vertical,op};
+ return{a,b,ans,text,ctx,vertical,op,mode:'number'};
 }
-function startLesson(j){lessonIndex=j;lesson=unit.lessons[j];q=0;correct=0;questions=Array.from({length:10},()=>gen(lesson[1]));$('lessonName').textContent=lesson[0];$('lessonHint').textContent=unit.title;show('game');next()}
-function next(){if(q>=10)return finish();current=questions[q];typed='';active=1;$('qNo').textContent='Задатак '+(q+1)+'/10';$('score').textContent='Тачно: '+correct;$('bar').style.width=(q*10)+'%';$('feedback').textContent='';$('feedback').className='feedback';$('context').textContent=current.ctx||'';$('problem').textContent=current.vertical?'':current.text;renderAnswer()}
-function renderAnswer(){let host=$('verticalHost');host.innerHTML='';if(current.vertical){let [at,ao]=split(current.a),[bt,bo]=split(current.b);host.innerHTML='<div class="vertical"><div class="lab" style="grid-column:2">Д</div><div class="lab" style="grid-column:3">Ј</div><div class="op">'+current.op+'</div><div class="n aT">'+at+'</div><div class="n aO">'+ao+'</div><div class="n bT">'+bt+'</div><div class="n bO">'+bo+'</div><div class="line"></div><div id="ansT" class="answerBox ansT"></div><div id="ansO" class="answerBox ansO active"></div></div>'} else {host.innerHTML='<div style="display:flex;justify-content:center;margin:15px"><div id="ansO" class="answerBox active"></div></div>'}syncBoxes()}
-function syncBoxes(){let t=$('ansT'),o=$('ansO');if(current.vertical){let s=typed.slice(-2);if(t)t.textContent=s.length>1?s[0]:'';if(o)o.textContent=s.length?s[s.length-1]:''}else if(o)o.textContent=typed}
-function key(d){typed=(typed+d).slice(current.vertical?2:3);syncBoxes()}
+function startLesson(j){lessonIndex=j;lesson=unit.lessons[j];q=0;correct=0;questions=Array.from({length:10},()=>gen(lesson[1]));$('lessonName').textContent=lesson[0];$('lessonHint').textContent=unit.title;let g=$('lessonGuide');if(lesson[2]){g.innerHTML=lesson[2];g.classList.remove('hidden')}else{g.innerHTML='';g.classList.add('hidden')}show('game');next()}
+function next(){if(q>=10)return finish();current=questions[q];typed='';active=1;$('qNo').textContent='Задатак '+(q+1)+'/10';$('score').textContent='Тачно: '+correct;$('bar').style.width=(q*10)+'%';$('feedback').textContent='';$('feedback').className='feedback';$('context').textContent=current.ctx||'';let p=$('problem');if(current.vertical)p.textContent='';else if(current.html)p.innerHTML=current.text;else p.textContent=current.text;renderAnswer()}
+function renderAnswer(){
+ let host=$('verticalHost'),kp=$('keypad');host.innerHTML='';kp.innerHTML='';
+ if(current.mode==='choice'){
+   let box=document.createElement('div');box.className='choices';
+   current.choices.forEach(v=>{let b=document.createElement('button');b.className='choice';b.textContent=v;b.onclick=()=>{typed=String(v);box.querySelectorAll('.choice').forEach(x=>x.classList.toggle('selected',x===b))};box.appendChild(b)});host.appendChild(box);return;
+ }
+ if(current.mode==='roman'){
+   host.innerHTML='<div id="romanAnswer" class="romanAnswer empty"></div>';
+   let rk=document.createElement('div');rk.className='romanKeys';
+   ['I','V','X','L','C'].forEach(s=>{let b=document.createElement('button');b.className='romanKey';b.textContent=s;b.onclick=()=>romanKey(s);rk.appendChild(b)});
+   let e=document.createElement('button');e.className='romanKey erase';e.textContent='⌫ Обриши последњи знак';e.onclick=()=>{typed=typed.slice(0,-1);syncBoxes()};rk.appendChild(e);kp.appendChild(rk);syncBoxes();return;
+ }
+ if(current.vertical){let [at,ao]=split(current.a),[bt,bo]=split(current.b);host.innerHTML='<div class="vertical"><div class="lab" style="grid-column:2">Д</div><div class="lab" style="grid-column:3">Ј</div><div class="op">'+current.op+'</div><div class="n aT">'+at+'</div><div class="n aO">'+ao+'</div><div class="n bT">'+bt+'</div><div class="n bO">'+bo+'</div><div class="line"></div><div id="ansT" class="answerBox ansT"></div><div id="ansO" class="answerBox ansO active"></div></div>'}
+ else {host.innerHTML='<div style="display:flex;justify-content:center;margin:15px"><div id="ansO" class="answerBox active"></div></div>'}
+ setupNumberKeys();syncBoxes()
+}
+function syncBoxes(){if(current&&current.mode==='roman'){let a=$('romanAnswer');if(a){a.textContent=typed;a.classList.toggle('empty',!typed)}return}let t=$('ansT'),o=$('ansO');if(current&&current.vertical){let s=typed.slice(-2);if(t)t.textContent=s.length>1?s[0]:'';if(o)o.textContent=s.length?s[s.length-1]:''}else if(o)o.textContent=typed}
+function key(d){typed=(typed+d).slice(current&&current.vertical?2:3);syncBoxes()}
+function romanKey(s){typed=(typed+s).slice(0,8);syncBoxes()}
 function clearAns(){typed='';syncBoxes();$('feedback').textContent=''}
-function check(){if(typed===''){bad('Упиши одговор.');return}let v=Number(typed);if(v===current.ans){correct++;$('feedback').className='feedback good';$('feedback').textContent=pick(['Браво! 🌟','Тачно! 🎉','Одлично! 🚀']);q++;$('bar').style.width=(q*10)+'%';setTimeout(next,650)}else bad('Покушај поново. 🙂')}
+function check(){if(typed===''){bad(current.mode==='choice'?'Изабери одговор.':'Упиши одговор.');return}let ok=String(typed).toUpperCase()===String(current.ans).toUpperCase();if(ok){correct++;$('feedback').className='feedback good';$('feedback').textContent=pick(['Браво! 🌟','Тачно! 🎉','Одлично! 🚀']);q++;$('bar').style.width=(q*10)+'%';setTimeout(next,650)}else{let hint=current.mode==='roman'?'Провери редослед знакова. Тачан запис можеш добити применом правила сабирања и одузимања.':'Покушај поново. 🙂';bad(hint)}}
 function bad(s){$('feedback').className='feedback bad';$('feedback').textContent=s}
 function finish(){let s=correct>=9?3:correct>=7?2:correct>=5?1:0;saveStars(unitKey(),s);$('finalScore').textContent=correct;$('finalStars').textContent=s;$('resultTitle').textContent=correct>=9?'Фантастично!':correct>=7?'Одличан рад!':correct>=5?'Добро ти иде!':'Пробај још једном!';$('resultText').textContent='Лекција „'+lesson[0]+'“: '+correct+' од 10 тачних одговора.';show('result')}
-function setupKeys(){let k=$('keypad');'1234567890'.split('').forEach(x=>{let b=document.createElement('button');b.className='key';b.textContent=x;b.onclick=()=>key(x);k.appendChild(b)})}
+function setupNumberKeys(){let k=$('keypad');k.innerHTML='';'1234567890'.split('').forEach(x=>{let b=document.createElement('button');b.className='key';b.textContent=x;b.onclick=()=>key(x);k.appendChild(b)})}
 function setupScratch(){let c=$('scratch'),x=c.getContext('2d'),down=false,last=null;x.lineWidth=6;x.lineCap='round';x.strokeStyle='#33425d';const p=e=>{let r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height}};c.onpointerdown=e=>{e.preventDefault();down=true;last=p(e);c.setPointerCapture?.(e.pointerId)};c.onpointermove=e=>{if(!down)return;e.preventDefault();let q=p(e);x.beginPath();x.moveTo(last.x,last.y);x.lineTo(q.x,q.y);x.stroke();last=q};c.onpointerup=c.onpointercancel=()=>down=false;$('clearScratch').onclick=()=>x.clearRect(0,0,c.width,c.height)}
-$('start').onclick=()=>{renderUnits();show('units')};document.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>show('home'));$('backUnits').onclick=()=>{renderUnits();show('units')};$('backLessons').onclick=()=>openUnit(units.indexOf(unit));$('clear').onclick=clearAns;$('check').onclick=check;$('again').onclick=()=>startLesson(lessonIndex);$('chooseLesson').onclick=()=>openUnit(units.indexOf(unit));document.addEventListener('keydown',e=>{if(!$('game').classList.contains('hidden')){if(/^[0-9]$/.test(e.key))key(e.key);else if(e.key==='Backspace')clearAns();else if(e.key==='Enter')check()}});
-setupKeys();setupScratch();
+$('start').onclick=()=>{renderUnits();show('units')};document.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>show('home'));$('backUnits').onclick=()=>{renderUnits();show('units')};$('backLessons').onclick=()=>openUnit(units.indexOf(unit));$('clear').onclick=clearAns;$('check').onclick=check;$('again').onclick=()=>startLesson(lessonIndex);$('chooseLesson').onclick=()=>openUnit(units.indexOf(unit));document.addEventListener('keydown',e=>{if(!$('game').classList.contains('hidden')){if(current&&current.mode==='roman'&&/^[ivxlc]$/i.test(e.key)){romanKey(e.key.toUpperCase());e.preventDefault()}else if(current&&current.mode!=='choice'&&/^[0-9]$/.test(e.key)){key(e.key);e.preventDefault()}else if(e.key==='Backspace'){typed=typed.slice(0,-1);syncBoxes();e.preventDefault()}else if(e.key==='Enter'){check();e.preventDefault()}}});
+setupScratch();
 </script>
 </body></html>
