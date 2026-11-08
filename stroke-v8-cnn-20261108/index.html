@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="sr-Cyrl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="theme-color" content="#6657e8">
+<title>V8 Local CNN Handwriting</title>
+<style>
+:root{--ink:#26344f;--muted:#6d7689;--purple:#6657e8;--green:#14885a;--red:#c94343;--line:#dfe5ef}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;color:var(--ink);background:linear-gradient(180deg,#fffbed,#f4f8ff)}
+button{font:inherit}.wrap{width:min(1050px,96vw);margin:18px auto 50px}.card{background:#fff;border:1px solid #e7ebf3;border-radius:24px;padding:clamp(14px,2.5vw,25px);box-shadow:0 12px 36px rgba(40,55,90,.1);margin-bottom:15px}
+h1{margin:0;font-size:clamp(24px,5vw,38px)}.note{background:#f4f1ff;border-radius:16px;padding:12px 14px;line-height:1.5;color:#5f5a76;font-size:14px;margin-top:12px}.note b{color:#5143bd}
+.canvasWrap{position:relative;border:3px solid #d9deea;border-radius:20px;overflow:hidden;background:linear-gradient(#e8edf5 1px,transparent 1px) 0 0/100% 36px,linear-gradient(90deg,#eff2f7 1px,transparent 1px) 0 0/36px 100%,#fff}
+#ink{display:block;width:100%;height:min(36vh,350px);min-height:250px;touch-action:none}.hint{position:absolute;left:16px;top:12px;color:#adb5c3;font-weight:900;pointer-events:none}.hasInk .hint{opacity:0}
+.actions{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-top:13px}.btn{border:0;border-radius:15px;padding:12px 16px;font-weight:950}.primary{background:linear-gradient(135deg,var(--purple),#8a78ff);color:#fff}.secondary{border:2px solid var(--line);background:#fff}.btn:disabled{opacity:.5}
+.status{text-align:center;min-height:25px;margin-top:12px;font-weight:900;color:var(--muted)}.loading{color:#6256c9}.error{color:var(--red)}
+.results{display:grid;grid-template-columns:1fr 1fr;gap:12px}.box{border:2px solid #e6eaf1;border-radius:18px;padding:15px;min-height:125px}.label{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:950}.big{font-size:clamp(25px,5vw,40px);font-weight:950;margin-top:10px;word-break:break-word}.good{border-color:#a9dfcc;background:#f3fff9}.bad{border-color:#f0b7b7;background:#fff6f6}.neutral{background:#fafbfe}
+.symbols{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.sym{background:#eef1f7;border-radius:12px;padding:8px 10px;font-weight:950}.sym small{color:var(--muted);font-weight:800;margin-left:4px}
+details{margin-top:14px}summary{font-weight:900;cursor:pointer}.tech{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;white-space:pre-wrap;background:#f7f8fb;border-radius:13px;padding:12px;margin-top:8px}
+@media(max-width:700px){.results{grid-template-columns:1fr}.wrap{width:98vw}.card{padding:13px}.btn{flex:1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<section class="card">
+ <div style="font-size:34px">✍️🧠</div>
+ <h1>Брзи рукопис <span style="font-size:.45em;color:#6d7689">v8 LOCAL CNN</span></h1>
+ <div class="note"><b>Нови систем:</b> исти мали локални CNN препознаје свих 17 класа: <b>0–9, +, −, ×, ÷, =, (, )</b>. Stroke-beam и даље проба групе од 1–3 потеза, али више нема ручних правила само за 1/7. Модел је око 15 KB, ради у browser-у и кешира се за offline рад.</div>
+</section>
+<section class="card">
+ <div id="wrap" class="canvasWrap"><canvas id="ink" width="1200" height="380"></canvas><div class="hint">Напиши нпр. (2−1)+7 или 1 7 1 7</div></div>
+ <div class="actions"><button id="undo" class="btn secondary">↶ Последњи потез</button><button id="clear" class="btn secondary">🧽 Обриши</button><button id="go" class="btn primary">🧠 Препознај</button></div>
+ <div id="status" class="status loading">Учитававам локални CNN…</div>
+</section>
+<section class="card">
+ <div class="results">
+  <div class="box neutral"><div class="label">Прочитано</div><div id="recognized" class="big">—</div><div id="symbols" class="symbols"></div></div>
+  <div id="checkBox" class="box neutral"><div class="label">Математичка провера</div><div id="checked" class="big">—</div><div id="detail" style="margin-top:8px;color:var(--muted);font-weight:800"></div></div>
+ </div>
+ <details><summary>Технички детаљи</summary><div id="tech" class="tech">v8 LOCAL CNN — чекам први тест.</div></details>
+</section>
+</div>
+<script>
+const ink=document.getElementById('ink'),ctx=ink.getContext('2d'),wrap=document.getElementById('wrap');
+const statusEl=document.getElementById('status'),recognized=document.getElementById('recognized'),symbols=document.getElementById('symbols'),checked=document.getElementById('checked'),detail=document.getElementById('detail'),checkBox=document.getElementById('checkBox'),tech=document.getElementById('tech');
+let strokes=[],active=null,MODEL=null,W=null,CLASSES=null,candidateCache=new Map();
+ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#273650';ctx.lineWidth=6;
+function setStatus(t,c=''){statusEl.textContent=t;statusEl.className='status '+c}
+function pos(e){const r=ink.getBoundingClientRect();return{x:(e.clientX-r.left)*ink.width/r.width,y:(e.clientY-r.top)*ink.height/r.height}}
+function redraw(parts=[]){ctx.clearRect(0,0,ink.width,ink.height);ctx.strokeStyle='#273650';ctx.lineWidth=6;for(const s of strokes){if(!s.points.length)continue;ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);ctx.stroke()}ctx.save();ctx.setLineDash([10,7]);ctx.lineWidth=2;ctx.strokeStyle='rgba(102,87,232,.65)';ctx.font='bold 22px sans-serif';ctx.fillStyle='#6657e8';for(const p of parts){const g=p.g;ctx.strokeRect(g.minX-5,g.minY-5,g.maxX-g.minX+10,g.maxY-g.minY+10);ctx.fillText(p.ch+'/'+p.count,g.minX,g.minY-10)}ctx.restore();wrap.classList.toggle('hasInk',strokes.length>0)}
+ink.onpointerdown=e=>{e.preventDefault();ink.setPointerCapture?.(e.pointerId);active={points:[pos(e)],tStart:performance.now()};strokes.push(active);redraw()};
+ink.onpointermove=e=>{if(!active)return;e.preventDefault();active.points.push(pos(e));redraw()};
+ink.onpointerup=ink.onpointercancel=()=>{if(active)active.tEnd=performance.now();active=null};
+function reset(){recognized.textContent='—';checked.textContent='—';detail.textContent='';symbols.innerHTML='';checkBox.className='box neutral';tech.textContent='v8 LOCAL CNN — чекам тест.'}
+document.getElementById('clear').onclick=()=>{strokes=[];active=null;redraw();reset()};
+document.getElementById('undo').onclick=()=>{strokes.pop();active=null;redraw();reset()};
+
+function b64i8(s){const bin=atob(s),q=new Int8Array(bin.length);for(let i=0;i<bin.length;i++){let v=bin.charCodeAt(i);q[i]=v>127?v-256:v}return q}
+function deq(t){const q=b64i8(t.b64),a=new Float32Array(q.length);for(let i=0;i<q.length;i++)a[i]=q[i]*t.scale;return a}
+async function loadModel(){
+ try{
+  const j=await fetch('./model.json',{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('model HTTP '+r.status);return r.json()});
+  MODEL=j;CLASSES=j.classes;W={};for(const [k,t] of Object.entries(j.tensors))W[k]=deq(t);
+  setStatus('v8 CNN је спреман · '+CLASSES.length+' класа · offline cache активан.','');
+ }catch(e){setStatus('Грешка модела: '+e.message,'error')}
+}
+loadModel();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+function strokeBox(s){let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;for(const p of s.points){minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y)}return{minX,minY,maxX,maxY,w:maxX-minX,h:maxY-minY}}
+function makeGroupIds(ids){const items=[];let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;for(const i of ids){const s=strokes[i],b=strokeBox(s);items.push({i,s,b});minX=Math.min(minX,b.minX);minY=Math.min(minY,b.minY);maxX=Math.max(maxX,b.maxX);maxY=Math.max(maxY,b.maxY)}return{ids:[...ids],items,minX,minY,maxX,maxY}}
+function spatialCompatibility(g){if(g.items.length===1)return 1;const H=Math.max(20,g.maxY-g.minY),W=Math.max(8,g.maxX-g.minX);let score=1;for(let i=0;i<g.items.length;i++)for(let j=i+1;j<g.items.length;j++){const a=g.items[i].b,b=g.items[j].b;const xgap=Math.max(0,b.minX-a.maxX,a.minX-b.maxX);const ygap=Math.max(0,b.minY-a.maxY,a.minY-b.maxY);const ox=Math.max(0,Math.min(a.maxX,b.maxX)-Math.max(a.minX,b.minX));if(xgap>H*.72&&ox===0)return 0;if(xgap>H*.46)score*=.6;if(ygap>H*.62)score*=.7}if(W>H*3.2&&g.items.length>1)score*=.65;return score}
+function nearbyStrokeIds(anchor,unused){const a=strokeBox(strokes[anchor]),ah=Math.max(25,a.h),acy=(a.minY+a.maxY)/2;return[...unused].filter(i=>i!==anchor).map(i=>{const b=strokeBox(strokes[i]),cy=(b.minY+b.maxY)/2,xg=Math.max(0,b.minX-a.maxX,a.minX-b.maxX),yg=Math.max(0,b.minY-a.maxY,a.minY-b.maxY);return{i,score:xg/ah+yg/ah+Math.abs(cy-acy)/(ah*3)}}).filter(x=>x.score<1.3).sort((a,b)=>a.score-b.score).slice(0,5).map(x=>x.i)}
+
+function render28(g){const pad=18,w=Math.max(32,Math.ceil(g.maxX-g.minX)+pad*2),h=Math.max(32,Math.ceil(g.maxY-g.minY)+pad*2);const raw=document.createElement('canvas');raw.width=w;raw.height=h;const r=raw.getContext('2d');r.strokeStyle='#fff';r.lineWidth=7;r.lineCap='round';r.lineJoin='round';for(const it of g.items){const p=it.s.points;if(!p.length)continue;r.beginPath();r.moveTo(p[0].x-g.minX+pad,p[0].y-g.minY+pad);for(let i=1;i<p.length;i++)r.lineTo(p[i].x-g.minX+pad,p[i].y-g.minY+pad);r.stroke()}
+ const im=r.getImageData(0,0,w,h).data;let minx=w,miny=h,maxx=-1,maxy=-1;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(im[(y*w+x)*4+3]>12){minx=Math.min(minx,x);maxx=Math.max(maxx,x);miny=Math.min(miny,y);maxy=Math.max(maxy,y)}
+ if(maxx<0)return new Float32Array(784);const bw=maxx-minx+1,bh=maxy-miny+1,scale=20/Math.max(bw,bh),dw=Math.max(1,Math.round(bw*scale)),dh=Math.max(1,Math.round(bh*scale));const c=document.createElement('canvas');c.width=28;c.height=28;const x=c.getContext('2d');x.fillStyle='#000';x.fillRect(0,0,28,28);x.drawImage(raw,minx,miny,bw,bh,Math.floor((28-dw)/2),Math.floor((28-dh)/2),dw,dh);const z=x.getImageData(0,0,28,28).data,out=new Float32Array(784);for(let i=0;i<784;i++)out[i]=z[i*4]/255;return out}
+
+function convFlat(input,Cin,H,Wd,weight,bias,Cout,K){const OH=H-K+1,OW=Wd-K+1,out=new Float32Array(Cout*OH*OW);for(let oc=0;oc<Cout;oc++)for(let y=0;y<OH;y++)for(let x=0;x<OW;x++){let s=bias[oc];for(let ic=0;ic<Cin;ic++)for(let ky=0;ky<K;ky++)for(let kx=0;kx<K;kx++){const iv=ic*H*Wd+(y+ky)*Wd+x+kx,wi=(((oc*Cin+ic)*K+ky)*K+kx);s+=input[iv]*weight[wi]}out[oc*OH*OW+y*OW+x]=s>0?s:0}return{a:out,h:OH,w:OW}}
+function poolFlat(input,C,H,Wd){const OH=H>>1,OW=Wd>>1,out=new Float32Array(C*OH*OW);for(let c=0;c<C;c++)for(let y=0;y<OH;y++)for(let x=0;x<OW;x++){const yy=y*2,xx=x*2,b=c*H*Wd;out[c*OH*OW+y*OW+x]=Math.max(input[b+yy*Wd+xx],input[b+yy*Wd+xx+1],input[b+(yy+1)*Wd+xx],input[b+(yy+1)*Wd+xx+1])}return{a:out,h:OH,w:OW}}
+function classify(v){
+ let z=convFlat(v,1,28,28,W['c1.weight'],W['c1.bias'],8,5);z=poolFlat(z.a,8,z.h,z.w);z=convFlat(z.a,8,z.h,z.w,W['c2.weight'],W['c2.bias'],12,3);z=poolFlat(z.a,12,z.h,z.w);
+ const f=z.a,hid=new Float32Array(32);for(let j=0;j<32;j++){let s=W['f1.bias'][j],o=j*300;for(let i=0;i<300;i++)s+=W['f1.weight'][o+i]*f[i];hid[j]=s>0?s:0}
+ const log=new Float32Array(CLASSES.length);for(let k=0;k<CLASSES.length;k++){let s=W['f2.bias'][k],o=k*32;for(let j=0;j<32;j++)s+=W['f2.weight'][o+j]*hid[j];log[k]=s}
+ let mx=Math.max(...log),ex=Array.from(log,v=>Math.exp(v-mx)),sum=ex.reduce((a,b)=>a+b,0);return ex.map((p,i)=>({ch:CLASSES[i],conf:p/sum,why:'v8 CNN'})).sort((a,b)=>b.conf-a.conf)}
+function candidates(ids){const key=[...ids].sort((a,b)=>a-b).join(',');if(candidateCache.has(key))return candidateCache.get(key);const g=makeGroupIds(ids),compat=spatialCompatibility(g);if(!compat)return[];const top=classify(render28(g)).slice(0,5).map(c=>({...c,conf:c.conf*compat*(ids.length===1?1:ids.length===2?.98:.92),g,count:ids.length})).filter(c=>c.conf>.015);candidateCache.set(key,top);return top}
+
+function grammarScore(s,final=false){let bal=0,eq=0,prev='start',score=0;for(const c of s){const digit=/\d/.test(c),op=['+','−','×','÷'].includes(c);if(digit){if(prev===')')return-Infinity;prev='digit';score+=.04;continue}if(c==='('){if(prev==='digit'||prev===')'||prev==='=')return-Infinity;bal++;prev='(';score+=.08;continue}if(c===')'){if(bal<=0||['start','(','op','='].includes(prev))return-Infinity;bal--;prev=')';score+=.12;continue}if(op){if(prev!=='digit'&&prev!==')')return-Infinity;prev='op';score+=.08;continue}if(c==='='){if(eq||bal!==0||(prev!=='digit'&&prev!==')'))return-Infinity;eq++;prev='=';score+=.08;continue}return-Infinity}if(final&&(bal!==0||['start','(','op','='].includes(prev)))return-Infinity;if(bal===0)score+=.06;return score}
+function beamRecognize(){candidateCache=new Map();const N=strokes.length,all=new Set(Array.from({length:N},(_,i)=>i));let beam=[{unused:all,text:'',score:0,parts:[]}],exp=0;for(let round=0;round<N+2&&beam.length;round++){if(beam.every(x=>!x.unused.size))break;const next=[];for(const st of beam){if(!st.unused.size){next.push(st);continue}const anchor=[...st.unused].sort((i,j)=>{const a=strokeBox(strokes[i]),b=strokeBox(strokes[j]);return a.minX-b.minX||a.minY-b.minY})[0],near=nearbyStrokeIds(anchor,st.unused),sets=[[anchor]];for(const j of near)sets.push([anchor,j]);for(let a=0;a<near.length;a++)for(let b=a+1;b<near.length;b++)sets.push([anchor,near[a],near[b]]);for(const ids of sets){if(ids.some(i=>!st.unused.has(i)))continue;for(const c of candidates(ids)){exp++;const text=st.text+c.ch,gs=grammarScore(text,false);if(!Number.isFinite(gs))continue;const unused=new Set(st.unused);ids.forEach(i=>unused.delete(i));const gp=ids.length>1?-.04*(ids.length-1):0;next.push({unused,text,score:st.score+Math.log(Math.max(c.conf,1e-5))+gs+gp,parts:[...st.parts,c]})}}}next.sort((a,b)=>b.score-a.score);beam=next.slice(0,20)}const finals=beam.filter(x=>!x.unused.size&&Number.isFinite(grammarScore(x.text,true))).map(x=>({...x,score:x.score+grammarScore(x.text,true)})).sort((a,b)=>b.score-a.score);return{best:finals[0]||beam.find(x=>!x.unused.size)||null,alts:finals.slice(0,5),exp}}
+
+function normalizeExpr(s){return s.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-')}
+function tokens(s){const a=[];let i=0;while(i<s.length){if(/\d/.test(s[i])){let j=i+1;while(j<s.length&&/\d/.test(s[j]))j++;a.push({t:'n',v:+s.slice(i,j)});i=j}else if('()+-*/='.includes(s[i]))a.push({t:s[i++]});else throw Error('Неподржан знак')}return a}
+function value(ts){let p=0,pk=t=>ts[p]?.t===t;function pri(){if(pk('n'))return ts[p++].v;if(pk('(')){p++;const v=expr();if(!pk(')'))throw Error('Недостаје )');p++;return v}if(pk('-')){p++;return-pri()}throw Error('Очекиван број')}function term(){let v=pri();while(pk('*')||pk('/')){const o=ts[p++].t,n=pri();v=o==='*'?v*n:v/n}return v}function expr(){let v=term();while(pk('+')||pk('-')){const o=ts[p++].t,n=term();v=o==='+'?v+n:v-n}return v}const v=expr();if(p!==ts.length)throw Error('Неочекиван део');return v}
+function verify(s){const n=normalizeExpr(s),q=n.split('=');if(q.length===2){const l=value(tokens(q[0])),r=value(tokens(q[1]));return{eq:true,l,r,ok:Math.abs(l-r)<1e-9}}if(q.length>2)throw Error('Више =');return{eq:false,v:value(tokens(n))}}
+
+document.getElementById('go').onclick=async()=>{const btn=document.getElementById('go');if(!MODEL)return setStatus('Модел се још учитава…','loading');if(!strokes.length)return setStatus('Напиши нешто.','error');btn.disabled=true;const t0=performance.now();try{const r=beamRecognize(),best=r.best;if(!best)throw Error('Нема валидне сегментације');const ms=performance.now()-t0,expr=best.text;recognized.textContent=expr;symbols.innerHTML='';for(const p of best.parts){const e=document.createElement('span');e.className='sym';e.innerHTML=p.ch+' <small>'+Math.round(p.conf*100)+'% · '+p.count+'s</small>';symbols.appendChild(e)}redraw(best.parts);try{const v=verify(expr);if(v.eq){checkBox.className='box '+(v.ok?'good':'bad');checked.textContent=v.ok?'✅ Једнакост је тачна':'❌ Једнакост није тачна';detail.textContent='Лево = '+v.l+', десно = '+v.r}else{checkBox.className='box neutral';checked.textContent='Вредност израза: '+v.v;detail.textContent='Додај = и резултат за проверу једнакости.'}}catch(e){checkBox.className='box bad';checked.textContent='Не могу да проверим';detail.textContent=e.message}tech.textContent='v8 LOCAL CNN\nУкупно: '+ms.toFixed(1)+' ms\nStroke-ова: '+strokes.length+'\nCNN експанзија: '+r.exp+'\nИзабрано: '+expr+'\n\nПодела:\n'+best.parts.map((p,i)=>(i+1)+'. '+p.ch+' ← stroke '+p.g.ids.map(x=>x+1).join('+')+'  '+Math.round(p.conf*100)+'%').join('\n')+'\n\nАлтернативе:\n'+r.alts.map((a,i)=>(i+1)+'. '+a.text+' score='+a.score.toFixed(2)).join('\n');setStatus('Готово — '+ms.toFixed(0)+' ms.','')}catch(e){setStatus('Грешка: '+e.message,'error');tech.textContent=String(e.stack||e)}finally{btn.disabled=false}};
+</script>
+</body></html>
