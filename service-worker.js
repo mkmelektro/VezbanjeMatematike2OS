@@ -35,6 +35,7 @@ self.addEventListener('fetch', event => {
   const requestUrl = new URL(event.request.url);
   if (requestUrl.pathname.startsWith(BASE + 'logos-proba-k4n7/')) return;
   if (requestUrl.pathname.startsWith(BASE + 'stroke-v64-clean-20261108/')) return;
+  if (requestUrl.pathname.startsWith(BASE + 'stroke-v7-spatial-20261108/')) return;
 
   if (event.request.mode === 'navigate') {
     event.respondWith((async () => {
