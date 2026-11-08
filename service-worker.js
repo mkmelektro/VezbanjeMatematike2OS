@@ -32,6 +32,8 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.pathname.startsWith(BASE + 'logos-proba-k4n7/')) return;
 
   if (event.request.mode === 'navigate') {
     event.respondWith((async () => {
